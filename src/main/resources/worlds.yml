@@ -1,32 +1,21 @@
-# =========================================
-# CookieDuel - World Settings
-# =========================================
-# WILD:
-# - world: target world for both players
-# - the configured world must already be loaded before CookieDuel enables
-# - random search always starts from that world's spawn location
-# - the plugin finds one safe center
-# - then places both players symmetrically around that center
-#
-# ARENA_INSTANCE:
-# - template-world-name must already exist on disk
-# - plugin clones a fresh world instance per accepted duel
-# =========================================
+# CookieDuel world settings.
+# Wild mode searches around a loaded world's spawn.
+# Arena instance mode clones a template world for each accepted duel.
 
 wild:
-  # This world must already be loaded.
-  # CookieDuel does not auto-load the WILD world for you.
+  # This world must already be loaded before CookieDuel starts.
+  # The plugin will not auto-load it.
   world: "pvp_world"
 
-  # Random WILD search always radiates outward from this world's spawn location.
-  # No custom center coordinates are used right now.
+  # Wild spawn search always starts from the world's spawn.
+  # There is no custom center location here.
   use-random-safe-location: true
 
-  # Distance between the two duelists.
-  # Example: 10.0 means each player is placed ~5 blocks from center.
+  # Distance between the two players.
+  # 10.0 means each player lands about 5 blocks from center.
   spawn-distance: 10.0
 
-  # To keep both players on nearly equal terrain.
+  # Keeps both sides on roughly the same height.
   max-y-difference: 1
 
   random-location:
@@ -39,20 +28,20 @@ wild:
     avoid-nearby-players-radius: 32
 
   terrain-validation:
-    # Sample nearby columns around each spawn and reject rough combat terrain.
+    # Samples nearby columns so obviously rough terrain can be skipped.
     local-sample-radius: 2
 
-    # Maximum nearby floor variation allowed for each spawn point.
+    # Maximum local height spread allowed around one spawn.
     max-local-height-spread: 2
 
-    # Keep both duelists on nearly equivalent terrain roughness.
+    # Keeps both sides close in terrain roughness.
     max-local-height-spread-difference: 1
 
-    # Reject obvious cliff or ledge-like edges near the spawn.
+    # Rejects obvious ledges and bad edge drops.
     edge-check-radius: 2
     max-edge-drop: 3
 
-    # Reject nearby hazards or cramped obstacles in the immediate fight area.
+    # Rejects hazards and cramped blocks near the starting area.
     nearby-hazard-check-radius: 2
     nearby-obstruction-check-radius: 1
 
@@ -60,7 +49,7 @@ arena-instance:
   templates:
     default:
       enabled: true
-      # This template world folder must already exist on disk in the server world container.
+      # This template folder must already exist in the server world container.
       template-world-name: "pvp_template"
       instance-world-prefix: "duel_instance_"
 

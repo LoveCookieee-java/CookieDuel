@@ -28,7 +28,7 @@ public final class SnapshotService {
 
     public CompletableFuture<PlayerSnapshot> capture(Player player) {
         if (player == null) {
-            return CompletableFuture.failedFuture(new IllegalArgumentException("Player must not be null."));
+            return CompletableFuture.failedFuture(new IllegalArgumentException("Player cannot be null."));
         }
 
         return schedulerFacade.supplyForEntity(player, () -> new PlayerSnapshot(
@@ -70,7 +70,7 @@ public final class SnapshotService {
                     if (Boolean.TRUE.equals(success)) {
                         return CompletableFuture.completedFuture(null);
                     }
-                    return CompletableFuture.failedFuture(new IllegalStateException("Failed to restore player teleport for " + playerId));
+                    return CompletableFuture.failedFuture(new IllegalStateException("Could not restore teleport for player " + playerId));
                 });
     }
 

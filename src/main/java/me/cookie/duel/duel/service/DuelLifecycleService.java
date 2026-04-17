@@ -138,7 +138,7 @@ public final class DuelLifecycleService {
             }
 
             sendToParticipants(context, "confirm.denied", Map.of());
-            cancelSession(context.session(), "denied");
+            cancelSession(context.session(), "declined");
         });
     }
 
@@ -189,7 +189,7 @@ public final class DuelLifecycleService {
 
     public void forceStop(Player target) {
         schedulerFacade.runSync(() ->
-                duelSessionManager.byPlayer(target.getUniqueId()).ifPresent(context -> cancelSession(context.session(), "forced stop"))
+                duelSessionManager.byPlayer(target.getUniqueId()).ifPresent(context -> cancelSession(context.session(), "stopped by admin"))
         );
     }
 
@@ -207,7 +207,7 @@ public final class DuelLifecycleService {
 
     public void shutdown() {
         for (DuelSessionContext context : duelSessionManager.activeContexts()) {
-            cancelSession(context.session(), "plugin shutdown");
+            cancelSession(context.session(), "server shutting down");
         }
     }
 
@@ -215,7 +215,7 @@ public final class DuelLifecycleService {
         Player first = Bukkit.getPlayer(context.session().firstPlayer());
         Player second = Bukkit.getPlayer(context.session().secondPlayer());
         if (first == null || second == null) {
-            cancelSession(context.session(), "player unavailable");
+            cancelSession(context.session(), "player went offline");
             return;
         }
 
@@ -226,7 +226,7 @@ public final class DuelLifecycleService {
             sendToPlayer(first, "confirm.found", Map.of("opponent", second.getName()));
             sendToPlayer(second, "confirm.found", Map.of("opponent", first.getName()));
             long timeoutTicks = configService.mainConfig().duel().confirmTimeoutSeconds() * 20L;
-            confirmService.start(context.session(), timeoutTicks, () -> cancelSession(context.session(), "confirmation timeout"));
+            confirmService.start(context.session(), timeoutTicks, () -> cancelSession(context.session(), "accept timeout"));
             return;
         }
 
@@ -242,7 +242,7 @@ public final class DuelLifecycleService {
         Player first = Bukkit.getPlayer(session.firstPlayer());
         Player second = Bukkit.getPlayer(session.secondPlayer());
         if (first == null || second == null) {
-            cancelSession(session, "player unavailable");
+            cancelSession(session, "player went offline");
             return;
         }
 
@@ -253,9 +253,9 @@ public final class DuelLifecycleService {
                 .whenComplete((ignored, throwable) -> schedulerFacade.runSync(() -> {
                     if (throwable != null) {
                         logger.log(Level.WARNING,
-                                "CookieDuel failed to capture player snapshots for session " + session.sessionId() + ".",
+                                "Could not capture player snapshots for session " + session.sessionId() + ".",
                                 throwable);
-                        cancelSession(session, "snapshot capture failed");
+                        cancelSession(session, "setup failed");
                         return;
                     }
 
@@ -276,9 +276,9 @@ public final class DuelLifecycleService {
         WildLocationSettings settings = configService.worldsConfig().wild();
         World world = Bukkit.getWorld(settings.world());
         if (world == null) {
-            logger.warning("CookieDuel could not provision WILD session " + context.session().sessionId()
-                    + " because world '" + settings.world() + "' is no longer loaded.");
-            cancelSession(context.session(), "wild world unavailable");
+            logger.warning("WILD session " + context.session().sessionId()
+                    + " could not continue because world '" + settings.world() + "' is no longer loaded.");
+            cancelSession(context.session(), "wild world is unavailable");
             return;
         }
 
@@ -292,21 +292,21 @@ public final class DuelLifecycleService {
                 .whenComplete((pairOptional, throwable) -> schedulerFacade.runSync(() -> {
                     if (throwable != null) {
                         logger.log(Level.WARNING,
-                                "CookieDuel WILD spawn provisioning failed for session " + context.session().sessionId() + ".",
+                                "Error while finding a WILD spawn pair for session " + context.session().sessionId() + ".",
                                 throwable);
-                        cancelSession(context.session(), "wild spawn provisioning failed");
+                        cancelSession(context.session(), "wild spawn setup failed");
                         return;
                     }
 
                     Optional<WildSpawnPair> pair = pairOptional;
                     if (pair.isEmpty()) {
-                        logger.warning("CookieDuel could not find a fair WILD spawn pair for session "
+                        logger.warning("Could not find a fair WILD spawn pair for session "
                                 + context.session().sessionId()
                                 + " in world '" + settings.world() + "' after "
                                 + settings.maxAttempts()
-                                + " attempts from the world spawn origin.");
+                                + " tries from world spawn.");
                         sendToParticipants(context, "duel.no-safe-spawn", Map.of());
-                        cancelSession(context.session(), "no safe wild spawn");
+                        cancelSession(context.session(), "no safe spawn found");
                         return;
                     }
 
@@ -322,9 +322,9 @@ public final class DuelLifecycleService {
                 .orTimeout(configService.mainConfig().modes().arenaInstance().instanceCreateTimeoutSeconds(), TimeUnit.SECONDS)
                 .whenComplete((arena, throwable) -> schedulerFacade.runSync(() -> {
                     if (throwable != null) {
-                        logger.warning("CookieDuel arena provision failed for session " + session.sessionId() + ": " + throwable.getMessage());
+                        logger.warning("Arena setup failed for session " + session.sessionId() + ": " + throwable.getMessage());
                         sendToParticipants(context, "duel.provision-failed", Map.of());
-                        cancelSession(session, "arena provision failed");
+                        cancelSession(session, "arena setup failed");
                         return;
                     }
 
@@ -344,7 +344,7 @@ public final class DuelLifecycleService {
         Player first = Bukkit.getPlayer(session.firstPlayer());
         Player second = Bukkit.getPlayer(session.secondPlayer());
         if (first == null || second == null || context.firstTarget() == null || context.secondTarget() == null) {
-            cancelSession(session, "teleport prerequisites failed");
+            cancelSession(session, "teleport setup failed");
             return;
         }
 
@@ -361,14 +361,14 @@ public final class DuelLifecycleService {
                 .whenComplete((teleportResult, throwable) -> schedulerFacade.runSync(() -> {
                     if (throwable != null) {
                         logger.log(Level.WARNING,
-                                "CookieDuel teleport workflow crashed for session " + session.sessionId() + ".",
+                                "Teleport step threw an exception for session " + session.sessionId() + ".",
                                 throwable);
                         sendToParticipants(context, "duel.teleport-failed", Map.of());
-                        cancelSession(session, "teleport workflow crashed");
+                        cancelSession(session, "teleport step failed");
                         return;
                     }
                     if (teleportResult == null || !teleportResult.success()) {
-                        logger.warning("CookieDuel teleport failed for session "
+                        logger.warning("Teleport failed for session "
                                 + session.sessionId()
                                 + ": "
                                 + (teleportResult == null ? "unknown teleport result" : teleportResult.failureReason())
@@ -460,11 +460,11 @@ public final class DuelLifecycleService {
             return;
         }
 
-        logger.info("CookieDuel cancelling session "
+        logger.info("Cancelling session "
                 + session.sessionId()
-                + " in state "
+                + " from state "
                 + stateBeforeCancel
-                + " with reason: "
+                + ": "
                 + reason);
         context.cancelTasks();
         confirmService.clear(session.sessionId());
@@ -502,7 +502,7 @@ public final class DuelLifecycleService {
                 }).whenComplete((ignored, throwable) -> {
                     if (throwable != null) {
                         logger.log(Level.WARNING,
-                                "CookieDuel cleanup encountered an error for session " + session.sessionId() + ".",
+                                "Cleanup hit an error for session " + session.sessionId() + ".",
                                 throwable);
                     }
                     antiAbuseService.recordSessionEnd(session.firstPlayer(), session.secondPlayer());

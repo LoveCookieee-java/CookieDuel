@@ -1,20 +1,9 @@
-# =========================================
-# CookieDuel - WILD Spawn Blacklist
-# =========================================
-# Notes:
-# - This file is used by the WILD spawn validation system.
-# - Entries should normally be Bukkit/Paper Material names such as MAGMA_BLOCK or SWEET_BERRY_BUSH.
-# - Group aliases are also supported for convenience:
-#   - tag:leaves
-#   - tag:fences
-#   - tag:walls
-# - floor-blacklist:
-#   exact blocks that must not be used as the floor under either duelist
-# - body-blacklist:
-#   bad blocks for feet/head space and tight local obstruction checks
-# - nearby-blacklist:
-#   hazardous or annoying nearby combat terrain around a candidate spawn
-# =========================================
+# Extra blocks to avoid for Wild spawns.
+# Use Bukkit material names like MAGMA_BLOCK or SWEET_BERRY_BUSH.
+# These group aliases are also supported: tag:leaves, tag:fences, tag:walls
+# floor-blacklist: blocks players should never spawn on
+# body-blacklist: blocks that make the spawn space cramped or awkward
+# nearby-blacklist: blocks that make the nearby fight area unsafe or annoying
 
 wild:
   floor-blacklist:

@@ -1,10 +1,6 @@
-# =========================================
-# CookieDuel - Queues
-# =========================================
-# mode values:
-# - WILD
-# - ARENA_INSTANCE
-# =========================================
+# Queue list.
+# mode can be WILD or ARENA_INSTANCE.
+# ARENA_INSTANCE queues also need a template id.
 
 queues:
   wild-basic:

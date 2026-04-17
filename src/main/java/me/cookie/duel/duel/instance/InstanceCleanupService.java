@@ -35,7 +35,7 @@ public final class InstanceCleanupService {
     }
 
     public CompletableFuture<Boolean> cleanupInstance(String instanceWorldName) {
-        logger.info("CookieDuel cleaning arena instance '" + instanceWorldName + "'.");
+        logger.info("Cleaning up arena instance '" + instanceWorldName + "'.");
         return schedulerFacade.supplySync(() -> {
             worldInstanceManager.unloadWorld(instanceWorldName);
             return null;
@@ -43,7 +43,9 @@ public final class InstanceCleanupService {
                 .whenComplete((success, throwable) -> {
                     instanceProvisionService.release(instanceWorldName);
                     if (throwable != null) {
-                        logger.warning("CookieDuel failed to clean instance '" + instanceWorldName + "': " + throwable.getMessage());
+                        logger.warning("Could not clean arena instance '" + instanceWorldName + "': " + throwable.getMessage());
+                    } else if (Boolean.FALSE.equals(success)) {
+                        logger.warning("Arena instance '" + instanceWorldName + "' could not be deleted after retries.");
                     }
                 });
     }

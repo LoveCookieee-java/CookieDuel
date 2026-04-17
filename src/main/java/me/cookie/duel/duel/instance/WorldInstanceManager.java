@@ -23,7 +23,7 @@ public final class WorldInstanceManager {
     public Path copyTemplate(Path sourceDirectory, String instanceWorldName) throws IOException {
         Path targetDirectory = worldContainer.resolve(instanceWorldName);
         if (Files.exists(targetDirectory)) {
-            throw new IOException("Instance world already exists: " + targetDirectory);
+            throw new IOException("Instance world folder already exists: " + targetDirectory);
         }
 
         Files.walkFileTree(sourceDirectory, new SimpleFileVisitor<>() {
@@ -52,7 +52,7 @@ public final class WorldInstanceManager {
     public World loadWorld(String instanceWorldName) throws IOException {
         World world = Bukkit.createWorld(new WorldCreator(instanceWorldName));
         if (world == null) {
-            throw new IOException("Failed to load instance world: " + instanceWorldName);
+            throw new IOException("Could not load instance world '" + instanceWorldName + "'.");
         }
         return world;
     }

@@ -1,95 +1,97 @@
 # CookieDuel
 
-CookieDuel is a session-based Minecraft duel plugin for modern Paper servers. It keeps duel flow centered on a controlled lifecycle instead of letting commands mutate match state ad hoc.
+CookieDuel is a session-based duel plugin for modern Paper servers. It keeps match flow centered on queueing, confirmation, setup, teleport, fight, and cleanup instead of scattering duel state across commands.
 
 ## Compatibility
 
-- Supported server software: `Paper 1.21 - 1.21.11`
+- Server support: `Paper 1.21 - 1.21.11`
+- Folia support: yes, with scheduler-aware handling
+- Java: `21`
 - `plugin.yml` API version: `1.21`
-- Java requirement: `Java 21`
-- Folia support: practical support is built in through scheduler abstraction, entity scheduling, region-owned WILD spawn validation, and safer teleport orchestration
 
-## Features
+## What It Does
 
-- Exactly two duel modes: `WILD` and `ARENA_INSTANCE`
-- Session lifecycle with defensive state transitions
-- Queueing, confirmation, surrender, admin reload, forcestop, and leftover instance cleanup
-- Split admin configs: `config.yml`, `queues.yml`, `worlds.yml`, `messages.yml`, `blacklist.yml`
-- WILD paired spawn selection from one shared center
-- Template world cloning only after both duelists confirm
-- Snapshot/restore handling for duel entry and cleanup
-- Safer teleport failure rollback so duels do not start in a half-teleported state
+CookieDuel supports two duel modes and nothing more:
+
+- `WILD`
+- `ARENA_INSTANCE`
+
+The current codebase focuses on reliable session flow, fair Wild spawns, and safe arena world cleanup. It is not trying to be a kits, ranked, or stats plugin yet.
 
 ## Duel Modes
 
 ### `WILD`
 
-WILD uses one configured target world from `worlds.yml`. CookieDuel searches outward from that world's spawn location, finds one safe center, chooses a random horizontal direction, and places both players symmetrically around the same center.
+Wild mode uses one configured world from `worlds.yml`. The plugin searches outward from that world's spawn, picks one safe center, then places both players on opposite sides of that center at the configured distance.
 
-Important WILD behavior:
+That means:
 
-- Both duelists spawn in the same general area
-- Spawn distance stays configurable through `wild.spawn-distance`
-- Fairness checks reject obviously uneven terrain
-- `blacklist.yml` contributes floor, body/head, and nearby terrain hazard rules
-- The WILD world must already be loaded before CookieDuel enables
+- both players start in the same general area
+- both sides are generated from one shared center, not two unrelated random teleports
+- terrain checks try to keep the fight fair
+- `blacklist.yml` is part of spawn validation
 
-The validator is intentionally practical rather than overly complex. It checks for unsafe floor blocks, cramped spawn space, nearby hazards, rough terrain, edge drops, and mismatched local terrain conditions between the two spawn points.
+Wild validation is intentionally practical. It checks the floor block, headroom, nearby hazards, rough terrain, edge drops, and whether both spawn points feel roughly equivalent.
 
 ### `ARENA_INSTANCE`
 
-ARENA_INSTANCE clones a configured template world only after both players accept the duel. The plugin then loads a fresh temporary instance world, teleports both duelists into configured spawn points inside that instance, and deletes the instance after cleanup.
+Arena instance mode clones a template world only after both players accept. A fresh temporary world is loaded for the duel, the players are teleported to the template spawn points, and the instance is unloaded and deleted after cleanup.
 
-Important arena-instance behavior:
+This keeps arena matches isolated without leaving a permanent duel world running between fights.
 
-- Template world must already exist correctly on disk
-- Instance names are unique per session
-- Failed provisioning is logged clearly and cleaned up defensively
-- Leftover instance worlds can be cleaned on startup and by admin command
+## Features
+
+- Session-based duel lifecycle
+- Queue system with accept / deny flow
+- Two-mode design: `WILD` and `ARENA_INSTANCE`
+- Split config files
+- Config-driven Wild safety checks and blacklists
+- Inventory and state snapshot / restore
+- Safe teleport flow that only starts fights after both teleports succeed
+- Arena instance cleanup on duel end and optional leftover cleanup on startup
 
 ## Setup
 
-1. Install Java 21 on the server host.
+1. Install Java 21.
 2. Build the plugin jar.
-3. Place `CookieDuel-1.0.jar` in the server `plugins/` folder.
-4. Make sure the configured WILD world is already loaded before startup.
-5. Make sure arena template world folders already exist in the server world container.
-6. Start or restart the server and review the CookieDuel startup summary in console.
+3. Put `CookieDuel-1.0.jar` in your server `plugins/` folder.
+4. Make sure the Wild world is already loaded before the plugin starts.
+5. Make sure any arena template worlds already exist in the server world container.
+6. Start the server and check the CookieDuel startup log for config validation and mode status.
 
 ## Config Files
 
 - `config.yml`
-  Main duel timing, lobby behavior, anti-abuse settings, and mode toggles.
+  Main timings, lobby settings, mode toggles, and anti-abuse values.
 - `queues.yml`
-  Queue definitions and which duel mode each queue uses.
+  Queue definitions and which mode each queue uses.
 - `worlds.yml`
-  WILD world settings, paired spawn spacing, terrain validation options, and arena template definitions.
+  Wild world settings, spawn validation settings, and arena template definitions.
 - `messages.yml`
-  Player/admin messages and placeholders.
+  Player and admin message text.
 - `blacklist.yml`
-  Admin-controlled WILD block blacklists for floor, body/head obstruction, and nearby combat hazards.
+  Extra block blacklists used by Wild spawn validation.
 
 ## Important Notes
 
-- CookieDuel supports exactly two duel modes: `WILD` and `ARENA_INSTANCE`.
-- WILD random center search uses the configured world's spawn as the radius origin.
-- CookieDuel does not silently auto-load the WILD world. Invalid WILD world configuration fails clearly.
-- Arena template folders must exist on disk and be valid before the plugin enables.
-- Teleport flow only advances to `FIGHTING` after both players teleport successfully.
-- If one teleport fails, the duel is cancelled safely and rollback/restore logic runs instead of starting the fight.
-- Avoid using Paper `/reload` for this plugin. Restart the server when testing world cloning, unloading, or lifecycle-heavy behavior.
+- CookieDuel only supports `WILD` and `ARENA_INSTANCE`.
+- Wild search uses the configured world's spawn as the search origin.
+- The Wild world must already be loaded. CookieDuel does not auto-load it.
+- Arena template folders must already exist and be valid.
+- Teleports must succeed for both players before a duel can move into `FIGHTING`.
+- If setup, teleport, or instance cleanup fails, the plugin cancels safely rather than forcing the duel forward.
+- Use a proper restart when testing heavy world lifecycle behavior. Avoid Paper `/reload`.
 
-## Folia Notes
+## Folia
 
-CookieDuel has been revised for real scheduler awareness instead of just adding a label:
+CookieDuel is written to be scheduler-aware rather than just marked as Folia compatible.
 
-- async file copy/delete work stays off-thread
-- entity-owned work uses entity schedulers
-- WILD paired spawn validation runs through region-owned scheduling
-- duel lifecycle transitions use the scheduler facade instead of hardcoded Bukkit main-thread assumptions
-- world load/unload remains treated as explicit global work
+- entity work is scheduled through entity schedulers
+- Wild spawn checks run through region-owned execution
+- file copy and delete work stays async
+- world load and unload work stays explicit
 
-This is intended to be practically usable on Folia, but you should still validate your exact server stack, world setup, and companion plugins before production rollout.
+It should be workable on Folia, but you should still test it with your own server stack and other plugins before relying on it in production.
 
 ## Commands
 
@@ -104,26 +106,24 @@ This is intended to be practically usable on Folia, but you should still validat
 
 ## Build
 
-This repository currently uses Gradle build scripts with Java 21.
-
-If you have Gradle installed:
+The project uses Gradle with Java 21.
 
 ```bash
 gradle build
 ```
 
-The jar artifact is configured to build as:
+The configured build artifact name is:
 
 ```text
 CookieDuel-1.0.jar
 ```
 
-If your environment does not already have Gradle available, import the project into your IDE or generate/commit a Gradle wrapper in your own workflow before building in CI.
+If you do not keep Gradle installed locally, generate or commit a Gradle wrapper in your own workflow before using CI.
 
 ## Developer Notes
 
-- Core duel flow is session-based, not command-centric.
-- Scheduler concerns are funneled through `SchedulerFacade` and `PaperSchedulerFacade`.
-- WILD paired spawn logic is isolated in `WildLocationService` and `WildLocationValidator`.
-- Arena instance lifecycle is split across provision, cleanup, template, and world manager classes.
-- The current architecture is intentionally kept modular so kits, stats, or ranked features can be added later without rewriting duel lifecycle foundations.
+- Duel flow is session-based, not command-driven.
+- `SchedulerFacade` keeps scheduler usage in one place.
+- Wild spawn logic is isolated from the rest of the duel lifecycle.
+- Arena instance provisioning and cleanup are separate services.
+- The current structure is meant to stay small and maintainable while leaving room for future kit or ranked features.

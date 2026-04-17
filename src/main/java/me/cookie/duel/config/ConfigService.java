@@ -74,7 +74,7 @@ public final class ConfigService {
 
     private void saveDefaultFiles() {
         if (!plugin.getDataFolder().exists() && !plugin.getDataFolder().mkdirs()) {
-            throw new ConfigurationException("Failed to create plugin data folder.");
+            throw new ConfigurationException("Could not create the plugin data folder.");
         }
 
         saveDefaultFile("config.yml");

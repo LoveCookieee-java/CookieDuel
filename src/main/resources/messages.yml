@@ -1,48 +1,43 @@
-# =========================================
-# CookieDuel - Messages
-# =========================================
-# Notes:
-# - This file is safe to customize for wording and colors.
-# - Keep placeholder tokens such as {queue}, {player}, {opponent}, {seconds}, and {reason}.
-# =========================================
+# Player and admin messages.
+# Keep placeholders like {queue}, {player}, {opponent}, {seconds}, {reason}, and {count}.
 
 queue:
-  joined: "&aYou joined queue: &f{queue}"
+  joined: "&aJoined queue: &f{queue}"
   left: "&eYou left the queue."
-  not-in-queue: "&cYou are not currently in a queue."
-  already-in-queue: "&cYou are already in a queue."
-  in-session: "&cYou cannot queue while you are already in a duel session."
+  not-in-queue: "&cYou're not in a queue."
+  already-in-queue: "&cYou're already in that queue."
+  in-session: "&cYou can't join a queue while you're in a duel."
   queue-not-found: "&cUnknown queue: &f{queue}"
-  queue-disabled: "&cThat queue is currently disabled."
-  join-cooldown: "&cYou must wait &f{seconds}s &cbefore joining a queue again."
-  leave-penalty: "&cYou must wait &f{seconds}s &cbefore joining a queue again."
-  rematch-blocked: "&cYou cannot immediately rematch this opponent yet."
+  queue-disabled: "&cThat queue is disabled."
+  join-cooldown: "&cWait &f{seconds}s &cbefore joining a queue again."
+  leave-penalty: "&cWait &f{seconds}s &cbefore queueing again."
+  rematch-blocked: "&cYou can't rematch this opponent yet."
 
 confirm:
-  found: "&6Match found against &f{opponent}&6. Type &a/cookieduel accept &6or &c/cookieduel deny"
-  accepted-self: "&aYou accepted the duel."
-  accepted-other: "&e{player} accepted."
-  denied: "&cThe duel was denied."
-  timeout: "&cThe duel confirmation expired."
-  not-pending: "&cYou do not have a duel waiting for confirmation."
+  found: "&6Match found: &f{opponent}&6. Use &a/cookieduel accept &6or &c/cookieduel deny&6."
+  accepted-self: "&aDuel accepted."
+  accepted-other: "&e{player} accepted the duel."
+  denied: "&cThe duel was declined."
+  timeout: "&cThe duel request timed out."
+  not-pending: "&cYou don't have a duel request waiting."
 
 duel:
-  preparing: "&ePreparing duel..."
+  preparing: "&eSetting up the duel..."
   teleporting: "&eTeleporting players..."
   started: "&aFight!"
-  won: "&aYou won against {opponent}!"
-  lost: "&cYou lost against {opponent}."
+  won: "&aYou beat {opponent}!"
+  lost: "&cYou lost to {opponent}."
   surrendered: "&cYou surrendered."
   cancelled: "&cDuel cancelled: {reason}"
-  no-session: "&cYou are not in an active duel session."
-  no-safe-spawn: "&cNo safe WILD spawn pair was found."
-  provision-failed: "&cThe arena instance could not be prepared."
-  teleport-failed: "&cThe duel teleport failed."
+  no-session: "&cYou're not in a duel right now."
+  no-safe-spawn: "&cCouldn't find a safe Wild spawn."
+  provision-failed: "&cCouldn't prepare the arena instance."
+  teleport-failed: "&cCouldn't start the duel because teleporting failed."
 
 admin:
   reload-done: "&aCookieDuel configs reloaded."
-  no-permission: "&cYou do not have permission to do that."
-  forcestop-done: "&eForced the duel session to stop for &f{player}&e."
+  no-permission: "&cYou don't have permission for that."
+  forcestop-done: "&eStopped the duel for &f{player}&e."
   forcestop-missing: "&cThat player is not in a duel session."
-  cleanup-started: "&eInstance cleanup started."
-  cleanup-done: "&aInstance cleanup finished. Removed &f{count}&a leftover instance worlds."
+  cleanup-started: "&eCleaning up leftover duel worlds..."
+  cleanup-done: "&aCleanup finished. Removed &f{count}&a leftover duel worlds."

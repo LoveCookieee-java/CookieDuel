@@ -46,7 +46,7 @@ public final class TeleportCoordinator {
                                             true,
                                             false,
                                             failureMessage("second", secondError, secondSuccess)
-                                                    + " Rollback threw: " + rollbackError.getMessage()
+                                                    + " Rollback also threw: " + rollbackError.getMessage()
                                     ));
                                     return;
                                 }
@@ -77,8 +77,8 @@ public final class TeleportCoordinator {
         return schedulerFacade.teleport(player, rollbackLocation).handle((rollbackSuccess, rollbackError) -> {
             boolean success = rollbackError == null && Boolean.TRUE.equals(rollbackSuccess);
             String suffix = success
-                    ? " Rollback to the safe destination succeeded."
-                    : " Rollback to the safe destination failed.";
+                    ? " Rollback to the fallback location succeeded."
+                    : " Rollback to the fallback location failed.";
             return TeleportBatchResult.failed(true, false, true, success, failureReason + suffix);
         });
     }
@@ -87,7 +87,7 @@ public final class TeleportCoordinator {
         if (error != null) {
             return "Teleport failed for " + playerLabel + " player: " + error.getMessage();
         }
-        return "Teleport returned unsuccessful for " + playerLabel + " player (success=" + successFlag + ").";
+        return "Teleport returned false for " + playerLabel + " player (success=" + successFlag + ").";
     }
 
     public record TeleportBatchResult(

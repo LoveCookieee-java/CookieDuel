@@ -19,8 +19,8 @@ public final class ConfigurationValidator {
             World wildWorld = Bukkit.getWorld(worldsConfig.wild().world());
             if (wildWorld == null) {
                 throw new ConfigurationException(
-                        "Configured WILD world '" + worldsConfig.wild().world() + "' is not loaded. "
-                                + "CookieDuel requires the WILD world to already be loaded and does not auto-load it."
+                        "WILD world '" + worldsConfig.wild().world() + "' is not loaded. "
+                                + "Load it before startup; CookieDuel will not auto-load it."
                 );
             }
         }
@@ -34,14 +34,14 @@ public final class ConfigurationValidator {
 
                 ArenaTemplateDefinition template = worldsConfig.arenaTemplates().get(queue.templateId());
                 if (template == null || !template.enabled()) {
-                    throw new ConfigurationException("Queue '" + queue.id() + "' references missing or disabled template '" + queue.templateId() + "'.");
+                    throw new ConfigurationException("Queue '" + queue.id() + "' points to a missing or disabled template '" + queue.templateId() + "'.");
                 }
 
                 Path templatePath = worldContainer.resolve(template.templateWorldName());
                 if (!Files.isDirectory(templatePath)) {
                     throw new ConfigurationException(
-                            "Template world folder does not exist for queue '" + queue.id() + "': " + templatePath
-                                    + ". CookieDuel requires ARENA_INSTANCE template worlds to exist on disk before startup."
+                            "Template world folder for queue '" + queue.id() + "' was not found: " + templatePath
+                                    + ". Create the template world before startup."
                     );
                 }
             }

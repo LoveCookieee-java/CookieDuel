@@ -40,7 +40,7 @@ public final class CookieDuelPlugin extends JavaPlugin {
             this.configService = new ConfigService(this);
             configService.load();
         } catch (Exception exception) {
-            getLogger().log(Level.SEVERE, "Failed to load CookieDuel configuration.", exception);
+            getLogger().log(Level.SEVERE, "Could not load CookieDuel config files.", exception);
             getServer().getPluginManager().disablePlugin(this);
             return;
         }
@@ -98,10 +98,10 @@ public final class CookieDuelPlugin extends JavaPlugin {
         if (configService.mainConfig().modes().arenaInstance().cleanupLeftoversOnStartup()) {
             duelLifecycleService.cleanupLeftoverInstances().whenComplete((count, throwable) -> {
                 if (throwable != null) {
-                    getLogger().log(Level.WARNING, "Failed to cleanup leftover duel instances on startup.", throwable);
+                    getLogger().log(Level.WARNING, "Could not clean up leftover duel worlds on startup.", throwable);
                     return;
                 }
-                getLogger().info("CookieDuel startup cleanup removed " + count + " leftover instance worlds.");
+                getLogger().info("Startup cleanup removed " + count + " leftover duel world(s).");
             });
         }
 
@@ -125,29 +125,29 @@ public final class CookieDuelPlugin extends JavaPlugin {
     }
 
     private void logStartupSummary() {
-        getLogger().info("CookieDuel enabled. Version: " + getPluginMeta().getVersion());
+        getLogger().info("CookieDuel " + getPluginMeta().getVersion() + " enabled.");
         String schedulerMode = schedulerFacade != null && schedulerFacade.isFolia()
                 ? "Folia runtime detected"
-                : "Paper global/entity scheduler mode";
-        getLogger().info("Scheduler mode: " + schedulerMode);
-        getLogger().info("WILD enabled: " + configService.mainConfig().modes().wildEnabled());
-        getLogger().info("ARENA_INSTANCE enabled: " + configService.mainConfig().modes().arenaInstance().enabled());
-        getLogger().info("Configured WILD world: " + configService.worldsConfig().wild().world()
-                + " (must already be loaded; random radius origin = world spawn)");
-        getLogger().info("WILD world loaded now: " + (Bukkit.getWorld(configService.worldsConfig().wild().world()) != null));
-        getLogger().info("blacklist.yml loaded: true"
+                : "Paper scheduler mode";
+        getLogger().info("Scheduler: " + schedulerMode);
+        getLogger().info("WILD mode: " + (configService.mainConfig().modes().wildEnabled() ? "enabled" : "disabled"));
+        getLogger().info("ARENA_INSTANCE mode: " + (configService.mainConfig().modes().arenaInstance().enabled() ? "enabled" : "disabled"));
+        getLogger().info("WILD world: " + configService.worldsConfig().wild().world()
+                + " (must already be loaded, search origin = world spawn)");
+        getLogger().info("WILD world loaded: " + (Bukkit.getWorld(configService.worldsConfig().wild().world()) != null));
+        getLogger().info("blacklist.yml loaded"
                 + " (floor=" + configService.blacklistConfig().wild().floorBlacklist().size()
                 + ", body=" + configService.blacklistConfig().wild().bodyBlacklist().size()
                 + ", nearby=" + configService.blacklistConfig().wild().nearbyBlacklist().size()
-                + ", invalidEntries=" + configService.blacklistConfig().invalidEntryCount()
+                + ", invalid=" + configService.blacklistConfig().invalidEntryCount()
                 + ")");
         if (configService.blacklistConfig().invalidEntryCount() > 0) {
-            getLogger().warning("blacklist.yml contained invalid entries. See earlier warnings for the exact values.");
+            getLogger().warning("blacklist.yml has invalid entries. See earlier warnings for the exact paths.");
         }
-        getLogger().info("ARENA_INSTANCE cleanup on startup: "
+        getLogger().info("Arena cleanup on startup: "
                 + configService.mainConfig().modes().arenaInstance().cleanupLeftoversOnStartup());
-        getLogger().info("ARENA_INSTANCE template folders are validated from the server world container on startup.");
-        getLogger().info("Configured queues: " + configService.queuesConfig().queues().size());
-        getLogger().info("Configured arena templates: " + configService.worldsConfig().arenaTemplates().size());
+        getLogger().info("Arena templates are checked in the server world container.");
+        getLogger().info("Queues loaded: " + configService.queuesConfig().queues().size());
+        getLogger().info("Arena templates loaded: " + configService.worldsConfig().arenaTemplates().size());
     }
 }

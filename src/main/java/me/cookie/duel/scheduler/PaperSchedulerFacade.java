@@ -1,7 +1,6 @@
 package me.cookie.duel.scheduler;
 
 import io.papermc.paper.threadedregions.scheduler.ScheduledTask;
-import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.Server;
 import org.bukkit.entity.Entity;
@@ -60,7 +59,7 @@ public final class PaperSchedulerFacade implements SchedulerFacade {
     @Override
     public void runAtLocation(Location location, Runnable runnable) {
         if (location == null || location.getWorld() == null) {
-            throw new IllegalArgumentException("Location must have a world.");
+            throw new IllegalArgumentException("Location must include a world.");
         }
         server.getRegionScheduler().execute(plugin, location, runnable);
     }
@@ -68,7 +67,7 @@ public final class PaperSchedulerFacade implements SchedulerFacade {
     @Override
     public <T> CompletableFuture<T> supplyAtLocation(Location location, Supplier<T> supplier) {
         if (location == null || location.getWorld() == null) {
-            return CompletableFuture.failedFuture(new IllegalArgumentException("Location must have a world."));
+            return CompletableFuture.failedFuture(new IllegalArgumentException("Location must include a world."));
         }
 
         CompletableFuture<T> future = new CompletableFuture<>();
@@ -89,7 +88,7 @@ public final class PaperSchedulerFacade implements SchedulerFacade {
     @Override
     public <T> CompletableFuture<T> supplyForEntity(Entity entity, Supplier<T> supplier) {
         if (entity == null) {
-            return CompletableFuture.failedFuture(new IllegalArgumentException("Entity must not be null."));
+            return CompletableFuture.failedFuture(new IllegalArgumentException("Entity cannot be null."));
         }
 
         CompletableFuture<T> future = new CompletableFuture<>();
@@ -100,7 +99,7 @@ public final class PaperSchedulerFacade implements SchedulerFacade {
                 0L
         );
         if (!scheduled) {
-            future.completeExceptionally(new IllegalStateException("Failed to schedule entity task for " + entity.getUniqueId()));
+            future.completeExceptionally(new IllegalStateException("Could not schedule entity task for " + entity.getUniqueId()));
         }
         return future;
     }
@@ -108,10 +107,10 @@ public final class PaperSchedulerFacade implements SchedulerFacade {
     @Override
     public CompletableFuture<Boolean> teleport(Entity entity, Location location) {
         if (entity == null) {
-            return CompletableFuture.failedFuture(new IllegalArgumentException("Entity must not be null."));
+            return CompletableFuture.failedFuture(new IllegalArgumentException("Entity cannot be null."));
         }
         if (location == null || location.getWorld() == null) {
-            return CompletableFuture.failedFuture(new IllegalArgumentException("Teleport location must have a world."));
+            return CompletableFuture.failedFuture(new IllegalArgumentException("Teleport location must include a world."));
         }
 
         return supplyForEntity(entity, () -> entity.teleportAsync(location)).thenCompose(result -> result);

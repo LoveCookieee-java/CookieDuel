@@ -40,7 +40,7 @@ public final class InstanceProvisionService {
     public CompletableFuture<ProvisionedArena> provision(DuelSession session) {
         ArenaTemplateDefinition template = configService.worldsConfig().arenaTemplates().get(session.templateId());
         if (template == null || !template.enabled()) {
-            return CompletableFuture.failedFuture(new IllegalStateException("Missing enabled arena template: " + session.templateId()));
+            return CompletableFuture.failedFuture(new IllegalStateException("Missing arena template '" + session.templateId() + "'."));
         }
 
         String instanceWorldName = worldTemplateManager.instanceWorldName(template, session.sessionId());
@@ -49,7 +49,7 @@ public final class InstanceProvisionService {
         }
 
         Path templatePath = worldTemplateManager.templatePath(template);
-        logger.info("CookieDuel provisioning arena instance '" + instanceWorldName + "' from template '" + template.templateWorldName() + "'.");
+        logger.info("Creating arena instance '" + instanceWorldName + "' from template '" + template.templateWorldName() + "'.");
 
         return schedulerFacade.supplyAsync(() -> {
             try {
@@ -74,7 +74,7 @@ public final class InstanceProvisionService {
             if (throwable == null) {
                 return;
             }
-            logger.warning("CookieDuel failed to provision arena instance '" + instanceWorldName + "': " + throwable.getMessage());
+            logger.warning("Could not create arena instance '" + instanceWorldName + "': " + throwable.getMessage());
             cleanupFailedProvision(instanceWorldName);
         });
     }
@@ -133,6 +133,11 @@ public final class InstanceProvisionService {
             } catch (IOException exception) {
                 throw new CompletionException(exception);
             }
-        })).whenComplete((ignored, throwable) -> release(instanceWorldName));
+        })).whenComplete((ignored, throwable) -> {
+            if (throwable != null) {
+                logger.warning("Cleanup after failed arena setup also failed for '" + instanceWorldName + "': " + throwable.getMessage());
+            }
+            release(instanceWorldName);
+        });
     }
 }

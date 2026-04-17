@@ -54,7 +54,7 @@ public final class BlacklistConfigLoader {
                 Predicate<Material> matcher = GROUP_ALIASES.get(alias);
                 if (matcher == null) {
                     invalidEntries[0]++;
-                    logger.warning("CookieDuel blacklist.yml has invalid group alias '" + normalized + "' at " + path + ".");
+                    logger.warning("Invalid blacklist alias '" + normalized + "' at " + path + ".");
                     continue;
                 }
 
@@ -73,7 +73,7 @@ public final class BlacklistConfigLoader {
 
             if (material == null) {
                 invalidEntries[0]++;
-                logger.warning("CookieDuel blacklist.yml has invalid material '" + normalized + "' at " + path + ".");
+                logger.warning("Invalid blacklist material '" + normalized + "' at " + path + ".");
                 continue;
             }
 
