@@ -31,7 +31,9 @@ Clones a configured template world after both players accept, loads a temporary 
 
 ## Commands
 
-- `/cookieduel queue <queueId>`
+- `/cookieduel queue <queueId>` — join a configured queue
+- `/cookieduel queues` — list available queue IDs
+- `/cookieduel info <queueId>` — show queue details
 - `/cookieduel leave`
 - `/cookieduel accept`
 - `/cookieduel deny`
@@ -42,6 +44,7 @@ Clones a configured template world after both players accept, loads a temporary 
 - Alias: `/cd`
 
 `<queueId>` is the queue you want to join.
+Queue IDs are defined in `queues.yml`.
 
 ## Dependencies
 

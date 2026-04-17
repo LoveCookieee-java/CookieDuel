@@ -6,7 +6,7 @@ author: Cookie
 commands:
   cookieduel:
     description: Main CookieDuel command
-    usage: /cookieduel queue <queueId>
+    usage: /cookieduel queues | /cookieduel queue <queueId>
     aliases: [cduel, cd]
 permissions:
   cookieduel.admin:
