@@ -1,6 +1,5 @@
 package me.cookie.duel.duel.session;
 
-import me.cookie.duel.config.model.QueueDefinition;
 import me.cookie.duel.duel.service.PlayerSnapshot;
 import me.cookie.duel.scheduler.SchedulerFacade;
 import org.bukkit.Location;
@@ -10,7 +9,6 @@ import java.util.concurrent.atomic.AtomicBoolean;
 public final class DuelSessionContext {
 
     private final DuelSession session;
-    private final QueueDefinition queueDefinition;
     private final AtomicBoolean cleanupStarted;
 
     private volatile PlayerSnapshot firstSnapshot;
@@ -21,18 +19,13 @@ public final class DuelSessionContext {
     private volatile SchedulerFacade.TaskHandle countdownTask;
     private volatile SchedulerFacade.TaskHandle fightTimeoutTask;
 
-    public DuelSessionContext(DuelSession session, QueueDefinition queueDefinition) {
+    public DuelSessionContext(DuelSession session) {
         this.session = session;
-        this.queueDefinition = queueDefinition;
         this.cleanupStarted = new AtomicBoolean(false);
     }
 
     public DuelSession session() {
         return session;
-    }
-
-    public QueueDefinition queueDefinition() {
-        return queueDefinition;
     }
 
     public PlayerSnapshot firstSnapshot() {

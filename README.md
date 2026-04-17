@@ -1,39 +1,38 @@
 # CookieDuel
 
-CookieDuel is a session-based duel plugin for Paper with two modes only: `WILD` and `ARENA_INSTANCE`.
-It is built around queueing, confirmation, setup, teleport, fight, and cleanup instead of command-by-command duel state.
+CookieDuel is a Paper duel plugin built around short-lived duel sessions instead of loose command state.
+It supports exactly two modes: `WILD` and `ARENA_INSTANCE`.
 
 ## Supported versions
 
 - Paper `1.21 - 1.21.11`
-- Folia supported through scheduler-aware handling
+- Folia supported through the scheduler layer used by teleports, GUI actions, and duel lifecycle work
 - Java `21`
 
 ## Features
 
-- Two duel modes: `WILD` and `ARENA_INSTANCE`
-- Session-based duel flow
-- Paired Wild spawn search from one shared center
-- Arena template cloning per accepted duel
-- Split config files
-- Snapshot / restore handling
-- Safe teleport and cleanup flow
+- Player-created duel queue entries
+- 54-slot queue browser GUI with pagination
+- Shared-center Wild spawns with blacklist and terrain checks
+- Per-duel arena world cloning and cleanup
+- Session-based confirm, provision, teleport, fight, and cleanup flow
+- Split config files and one central `lang.yml`
 
 ## Modes
 
 ### WILD
 
-Uses one configured world from `worlds.yml`, searches around that world's spawn, finds one safe center, then places both players on opposite sides of it. Spawn checks use terrain rules plus `blacklist.yml`.
+Wild duels use one configured world from `worlds.yml`. CookieDuel searches around that world's spawn, finds one safe center, and places both players on opposite sides of it with roughly equal terrain conditions.
 
 ### ARENA_INSTANCE
 
-Clones a configured template world after both players accept, loads a temporary duel world, teleports both players in, then unloads and deletes the instance after the duel.
+Arena duels clone a configured template world after both players accept, teleport both players into the temporary instance, then unload and delete it when the duel ends.
 
 ## Commands
 
-- `/cookieduel queue <queueId>` — join a configured queue
-- `/cookieduel queues` — list available queue IDs
-- `/cookieduel info <queueId>` — show queue details
+- `/cookieduel queue <id> <mode>` - create a queue entry you own
+- `/cookieduel queues` - open the queue browser GUI
+- `/cookieduel info <id>` - show basic info about an active queue
 - `/cookieduel leave`
 - `/cookieduel accept`
 - `/cookieduel deny`
@@ -43,8 +42,10 @@ Clones a configured template world after both players accept, loads a temporary 
 - `/cookieduel admin cleanupinstances`
 - Alias: `/cd`
 
-`<queueId>` is the queue you want to join.
-Queue IDs are defined in `queues.yml`.
+Modes for queue creation:
+
+- `WILD`
+- `ARENA_INSTANCE`
 
 ## Dependencies
 
@@ -54,18 +55,27 @@ No external plugin dependencies required.
 
 1. Build the jar.
 2. Put `CookieDuel-1.0.jar` in `plugins/`.
-3. Make sure the Wild world is already loaded.
-4. Make sure any arena template worlds already exist in the server world container.
-5. Start the server and check the startup log.
+3. Make sure the Wild world is already loaded before the plugin starts.
+4. Make sure arena template worlds already exist in the server world container.
+5. Start the server and review the startup log.
+
+## Config files
+
+- `config.yml` - general duel, lobby, and anti-abuse settings
+- `worlds.yml` - Wild world settings and arena templates
+- `queues.yml` - reserved for queue-related settings; live queue entries are created in game
+- `blacklist.yml` - Wild spawn blacklist rules
+- `lang.yml` - plugin prefix, chat messages, GUI text, and titles
 
 ## Notes
 
-- CookieDuel only supports `WILD` and `ARENA_INSTANCE`.
-- Wild search uses the configured world's spawn as its search origin.
-- The Wild world must already be loaded. CookieDuel will not auto-load it.
-- Arena template folders must already exist and be valid.
+- Queue entries are created by players in game; they are not a static list from config.
+- `/cd queues` opens the live queue browser and supports paging plus manual refresh.
+- Wild search uses the configured world's spawn as the search origin.
+- The Wild world must already be loaded. CookieDuel does not auto-load it.
+- Arena templates must already exist and be valid on disk.
 - A duel only enters `FIGHTING` after both teleports succeed.
-- Folia is supported, but you should still test it with your own server stack before production use.
+- Folia support is intentional, but you should still test with your own server stack before production use.
 
 ## Build
 

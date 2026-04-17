@@ -12,8 +12,11 @@ import java.util.Map;
 public final class QueuesConfigLoader {
 
     public QueuesConfig load(FileConfiguration config) {
-        ConfigurationSection queuesSection = MainConfigLoader.requireSection(config, "queues");
+        ConfigurationSection queuesSection = config.getConfigurationSection("queues");
         Map<String, QueueDefinition> queues = new LinkedHashMap<>();
+        if (queuesSection == null) {
+            return new QueuesConfig(Map.of());
+        }
 
         for (String queueId : queuesSection.getKeys(false)) {
             ConfigurationSection section = MainConfigLoader.requireSection(queuesSection, queueId);

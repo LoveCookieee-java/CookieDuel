@@ -1,17 +1,5 @@
-# Queue list.
-# mode can be WILD or ARENA_INSTANCE.
-# ARENA_INSTANCE queues also need a template id.
+# Queue entries are now created in game with /cd queue <id> <mode>.
+# This file is kept for future queue-related settings or presets.
+# It does not define the live queue list anymore.
 
-queues:
-  wild-basic:
-    enabled: true
-    display-name: "Wild Basic"
-    mode: "WILD"
-    confirm-required: true
-
-  boxed-instance:
-    enabled: true
-    display-name: "Boxed Instance"
-    mode: "ARENA_INSTANCE"
-    template: "default"
-    confirm-required: true
+queues: {}

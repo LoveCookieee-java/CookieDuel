@@ -6,7 +6,8 @@ import me.cookie.duel.duel.instance.InstanceCleanupService;
 import me.cookie.duel.duel.instance.InstanceProvisionService;
 import me.cookie.duel.duel.instance.WorldInstanceManager;
 import me.cookie.duel.duel.instance.WorldTemplateManager;
-import me.cookie.duel.duel.queue.QueueRegistry;
+import me.cookie.duel.duel.queue.PlayerQueueRegistry;
+import me.cookie.duel.duel.queue.gui.QueueGuiService;
 import me.cookie.duel.duel.service.AntiAbuseService;
 import me.cookie.duel.duel.service.ConfirmService;
 import me.cookie.duel.duel.service.DuelLifecycleService;
@@ -19,6 +20,7 @@ import me.cookie.duel.duel.teleport.wild.WildLocationValidator;
 import me.cookie.duel.listener.DuelCombatListener;
 import me.cookie.duel.listener.InstanceProtectionListener;
 import me.cookie.duel.listener.PlayerLifecycleListener;
+import me.cookie.duel.listener.QueueGuiListener;
 import me.cookie.duel.message.MessageService;
 import me.cookie.duel.scheduler.PaperSchedulerFacade;
 import me.cookie.duel.scheduler.SchedulerFacade;
@@ -47,10 +49,10 @@ public final class CookieDuelPlugin extends JavaPlugin {
 
         this.schedulerFacade = new PaperSchedulerFacade(this);
         MessageService messageService = new MessageService(configService);
-        QueueRegistry queueRegistry = new QueueRegistry(configService.queuesConfig().queues());
+        PlayerQueueRegistry playerQueueRegistry = new PlayerQueueRegistry();
         DuelSessionManager duelSessionManager = new DuelSessionManager();
         AntiAbuseService antiAbuseService = new AntiAbuseService(configService);
-        MatchmakingService matchmakingService = new MatchmakingService(queueRegistry, duelSessionManager, antiAbuseService);
+        MatchmakingService matchmakingService = new MatchmakingService(configService, playerQueueRegistry, duelSessionManager, antiAbuseService);
         ConfirmService confirmService = new ConfirmService(schedulerFacade);
         TeleportCoordinator teleportCoordinator = new TeleportCoordinator(schedulerFacade);
         SnapshotService snapshotService = new SnapshotService(schedulerFacade);
@@ -77,7 +79,6 @@ public final class CookieDuelPlugin extends JavaPlugin {
                 configService,
                 messageService,
                 schedulerFacade,
-                queueRegistry,
                 duelSessionManager,
                 matchmakingService,
                 confirmService,
@@ -89,11 +90,13 @@ public final class CookieDuelPlugin extends JavaPlugin {
                 instanceCleanupService,
                 getLogger()
         );
+        QueueGuiService queueGuiService = new QueueGuiService(duelLifecycleService, messageService, schedulerFacade);
 
-        registerCommand(new CookieDuelCommand(configService, duelLifecycleService, messageService, schedulerFacade));
+        registerCommand(new CookieDuelCommand(configService, duelLifecycleService, queueGuiService, messageService, schedulerFacade));
         getServer().getPluginManager().registerEvents(new PlayerLifecycleListener(duelLifecycleService), this);
         getServer().getPluginManager().registerEvents(new DuelCombatListener(duelSessionManager, duelLifecycleService), this);
         getServer().getPluginManager().registerEvents(new InstanceProtectionListener(duelLifecycleService), this);
+        getServer().getPluginManager().registerEvents(new QueueGuiListener(queueGuiService), this);
 
         if (configService.mainConfig().modes().arenaInstance().cleanupLeftoversOnStartup()) {
             duelLifecycleService.cleanupLeftoverInstances().whenComplete((count, throwable) -> {
@@ -147,7 +150,8 @@ public final class CookieDuelPlugin extends JavaPlugin {
         getLogger().info("Arena cleanup on startup: "
                 + configService.mainConfig().modes().arenaInstance().cleanupLeftoversOnStartup());
         getLogger().info("Arena templates are checked in the server world container.");
-        getLogger().info("Queues loaded: " + configService.queuesConfig().queues().size());
+        getLogger().info("Queues are player-created in game with /cd queue <id> <mode>.");
+        getLogger().info("Default arena template: " + configService.worldsConfig().defaultArenaTemplateId());
         getLogger().info("Arena templates loaded: " + configService.worldsConfig().arenaTemplates().size());
     }
 }

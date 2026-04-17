@@ -1,7 +1,5 @@
 package me.cookie.duel.duel.session;
 
-import me.cookie.duel.config.model.QueueDefinition;
-
 import java.util.Collection;
 import java.util.Map;
 import java.util.Optional;
@@ -13,8 +11,8 @@ public final class DuelSessionManager {
     private final Map<UUID, DuelSessionContext> sessionsById = new ConcurrentHashMap<>();
     private final Map<UUID, UUID> playerToSessionId = new ConcurrentHashMap<>();
 
-    public DuelSessionContext register(DuelSession session, QueueDefinition queueDefinition) {
-        DuelSessionContext context = new DuelSessionContext(session, queueDefinition);
+    public DuelSessionContext register(DuelSession session) {
+        DuelSessionContext context = new DuelSessionContext(session);
         sessionsById.put(session.sessionId(), context);
         playerToSessionId.put(session.firstPlayer(), session.sessionId());
         playerToSessionId.put(session.secondPlayer(), session.sessionId());

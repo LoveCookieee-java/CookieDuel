@@ -8,7 +8,7 @@ import me.cookie.duel.duel.DuelModeType;
 import me.cookie.duel.duel.instance.InstanceCleanupService;
 import me.cookie.duel.duel.instance.InstanceProvisionService;
 import me.cookie.duel.duel.instance.ProvisionedArena;
-import me.cookie.duel.duel.queue.QueueRegistry;
+import me.cookie.duel.duel.queue.PlayerQueueEntry;
 import me.cookie.duel.duel.session.DuelSession;
 import me.cookie.duel.duel.session.DuelSessionContext;
 import me.cookie.duel.duel.session.DuelSessionManager;
@@ -23,6 +23,7 @@ import org.bukkit.World;
 import org.bukkit.entity.Player;
 
 import java.util.Map;
+import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
@@ -36,7 +37,6 @@ public final class DuelLifecycleService {
     private final ConfigService configService;
     private final MessageService messageService;
     private final SchedulerFacade schedulerFacade;
-    private final QueueRegistry queueRegistry;
     private final DuelSessionManager duelSessionManager;
     private final MatchmakingService matchmakingService;
     private final ConfirmService confirmService;
@@ -51,7 +51,6 @@ public final class DuelLifecycleService {
     public DuelLifecycleService(ConfigService configService,
                                 MessageService messageService,
                                 SchedulerFacade schedulerFacade,
-                                QueueRegistry queueRegistry,
                                 DuelSessionManager duelSessionManager,
                                 MatchmakingService matchmakingService,
                                 ConfirmService confirmService,
@@ -65,7 +64,6 @@ public final class DuelLifecycleService {
         this.configService = configService;
         this.messageService = messageService;
         this.schedulerFacade = schedulerFacade;
-        this.queueRegistry = queueRegistry;
         this.duelSessionManager = duelSessionManager;
         this.matchmakingService = matchmakingService;
         this.confirmService = confirmService;
@@ -78,18 +76,49 @@ public final class DuelLifecycleService {
         this.logger = logger;
     }
 
-    public void joinQueue(Player player, String queueId) {
+    public void createQueueEntry(Player player, String queueId, DuelModeType mode) {
         schedulerFacade.runSync(() -> {
-            MatchmakingService.JoinResult result = matchmakingService.joinQueue(player.getUniqueId(), queueId);
+            MatchmakingService.CreateQueueResult result = matchmakingService.createQueue(
+                    player.getUniqueId(),
+                    player.getName(),
+                    queueId,
+                    mode
+            );
             switch (result.status()) {
-                case UNKNOWN_QUEUE -> sendToPlayer(player, "queue.queue-not-found", Map.of("queue", queueId));
-                case QUEUE_DISABLED -> sendToPlayer(player, "queue.queue-disabled", Map.of());
-                case ALREADY_QUEUED -> sendToPlayer(player, "queue.already-in-queue", Map.of());
+                case CREATED -> sendToPlayer(player, "queue.created", Map.of(
+                        "id", result.entry().id(),
+                        "mode", result.entry().mode().name()
+                ));
+                case INVALID_ID -> sendToPlayer(player, "queue.create-usage", Map.of());
+                case DUPLICATE_ID -> sendToPlayer(player, "queue.duplicate-id", Map.of());
+                case ALREADY_OWN_QUEUE -> sendToPlayer(player, "queue.already-own", Map.of());
                 case IN_SESSION -> sendToPlayer(player, "queue.in-session", Map.of());
                 case JOIN_COOLDOWN -> sendToPlayer(player, "queue.join-cooldown", Map.of("seconds", String.valueOf(result.secondsRemaining())));
                 case LEAVE_PENALTY -> sendToPlayer(player, "queue.leave-penalty", Map.of("seconds", String.valueOf(result.secondsRemaining())));
-                case QUEUED -> sendToPlayer(player, "queue.joined", Map.of("queue", result.queueDefinition().displayName()));
-                case MATCH_FOUND -> handleMatchFound(result.sessionContext());
+                case MODE_DISABLED -> sendToPlayer(player, "queue.disabled-mode", Map.of());
+                case NO_ARENA_TEMPLATE -> sendToPlayer(player, "queue.no-default-arena-template", Map.of());
+            }
+        });
+    }
+
+    public void joinQueueEntry(Player player, String queueId) {
+        schedulerFacade.runSync(() -> {
+            MatchmakingService.JoinQueueResult result = matchmakingService.joinQueue(player.getUniqueId(), queueId);
+            switch (result.status()) {
+                case MATCH_FOUND -> {
+                    sendToPlayer(player, "queue.join-started", Map.of("id", result.entry().id()));
+                    handleMatchFound(result.sessionContext());
+                }
+                case NOT_FOUND -> sendToPlayer(player, "queue.not-found", Map.of("id", queueId));
+                case OWN_QUEUE -> sendToPlayer(player, "queue.own-entry", Map.of());
+                case OWNER_UNAVAILABLE -> sendToPlayer(player, "queue.owner-offline", Map.of());
+                case ALREADY_OWN_QUEUE -> sendToPlayer(player, "queue.already-own", Map.of());
+                case IN_SESSION -> sendToPlayer(player, "queue.in-session", Map.of());
+                case JOIN_COOLDOWN -> sendToPlayer(player, "queue.join-cooldown", Map.of("seconds", String.valueOf(result.secondsRemaining())));
+                case LEAVE_PENALTY -> sendToPlayer(player, "queue.leave-penalty", Map.of("seconds", String.valueOf(result.secondsRemaining())));
+                case REMATCH_BLOCKED -> sendToPlayer(player, "queue.rematch-blocked", Map.of());
+                case MODE_DISABLED -> sendToPlayer(player, "queue.disabled-mode", Map.of());
+                case NO_ARENA_TEMPLATE -> sendToPlayer(player, "queue.no-default-arena-template", Map.of());
             }
         });
     }
@@ -97,7 +126,7 @@ public final class DuelLifecycleService {
     public void leaveQueue(Player player) {
         schedulerFacade.runSync(() -> {
             if (matchmakingService.leaveQueue(player.getUniqueId())) {
-                sendToPlayer(player, "queue.left", Map.of());
+                sendToPlayer(player, "queue.removed", Map.of());
                 return;
             }
             sendToPlayer(player, "queue.not-in-queue", Map.of());
@@ -163,7 +192,7 @@ public final class DuelLifecycleService {
 
     public void handleDisconnect(Player player) {
         schedulerFacade.runSync(() -> {
-            if (matchmakingService.leaveQueue(player.getUniqueId())) {
+            if (matchmakingService.removeOwnedQueue(player.getUniqueId()) != null) {
                 return;
             }
 
@@ -194,7 +223,7 @@ public final class DuelLifecycleService {
     }
 
     public void reloadQueues() {
-        queueRegistry.replaceDefinitions(configService.queuesConfig().queues());
+        // Player-created queues live in memory and do not need config reload handling.
     }
 
     public CompletableFuture<Integer> cleanupLeftoverInstances() {
@@ -209,6 +238,15 @@ public final class DuelLifecycleService {
         for (DuelSessionContext context : duelSessionManager.activeContexts()) {
             cancelSession(context.session(), "server shutting down");
         }
+        matchmakingService.clearQueues();
+    }
+
+    public List<PlayerQueueEntry> activeQueueEntries() {
+        return matchmakingService.activeEntries();
+    }
+
+    public Optional<PlayerQueueEntry> queueEntry(String queueId) {
+        return matchmakingService.queueEntry(queueId);
     }
 
     private void handleMatchFound(DuelSessionContext context) {
@@ -430,10 +468,17 @@ public final class DuelLifecycleService {
         Player winner = Bukkit.getPlayer(winnerId);
         Player loser = Bukkit.getPlayer(session.opponentOf(winnerId));
         if (winner != null && loser != null) {
-            sendToPlayer(winner, "duel.won", Map.of("opponent", loser.getName()));
-            sendToPlayer(loser, "duel.lost", Map.of("opponent", winner.getName()));
+            if (session.mode() == DuelModeType.ARENA_INSTANCE) {
+                sendToPlayer(winner, "duel.arena-won", Map.of("opponent", loser.getName()));
+                sendToPlayer(loser, "duel.arena-lost", Map.of("opponent", winner.getName()));
+                showArenaResultTitle(winner, "duel.arena-title-win-title", "duel.arena-title-win-subtitle", Map.of("opponent", loser.getName()));
+                showArenaResultTitle(loser, "duel.arena-title-lose-title", "duel.arena-title-lose-subtitle", Map.of("opponent", winner.getName()));
+            } else {
+                sendToPlayer(winner, "duel.won", Map.of("opponent", loser.getName()));
+                sendToPlayer(loser, "duel.lost", Map.of("opponent", winner.getName()));
+            }
         } else if (winner != null) {
-            sendToPlayer(winner, "duel.won", Map.of("opponent", "opponent"));
+            sendToPlayer(winner, session.mode() == DuelModeType.ARENA_INSTANCE ? "duel.arena-won" : "duel.won", Map.of("opponent", "opponent"));
         }
 
         cleanupSession(context);
@@ -543,6 +588,19 @@ public final class DuelLifecycleService {
 
     private void sendToPlayer(Player player, String path, Map<String, String> placeholders) {
         schedulerFacade.runForEntity(player, () -> messageService.send(player, path, placeholders));
+    }
+
+    private void showArenaResultTitle(Player player,
+                                      String titlePath,
+                                      String subtitlePath,
+                                      Map<String, String> placeholders) {
+        schedulerFacade.runForEntity(player, () -> player.sendTitle(
+                messageService.renderRaw(titlePath, placeholders),
+                messageService.renderRaw(subtitlePath, placeholders),
+                6,
+                60,
+                16
+        ));
     }
 
     public boolean canBreakBlocks(Player player) {

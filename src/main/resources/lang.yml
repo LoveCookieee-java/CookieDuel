@@ -1,0 +1,102 @@
+# Main language file.
+# Keep placeholders like {queue}, {id}, {owner}, {mode}, {player}, {opponent}, {seconds}, {reason}, and {count}.
+
+prefix: "&6CookieDuel &8» &r"
+
+general:
+  player-only: "&cOnly players can use that command."
+  invalid-mode: "&cInvalid mode. Use &fWILD &cor &fARENA_INSTANCE&c."
+  value-yes: "&aYes"
+  value-no: "&cNo"
+
+queue:
+  create-usage: "&eUse &f/cd queue <id> <mode>&e."
+  list-usage: "&eUse &f/cd queues &eto browse active queues."
+  info-usage: "&eUse &f/cd info <id>&e."
+  created: "&aCreated queue &f{id}&a in &f{mode}&a mode."
+  removed: "&eRemoved your queue entry."
+  not-in-queue: "&cYou don't have an active queue entry."
+  already-own: "&cYou already have an active queue entry. Use &f/cd leave &cfirst."
+  duplicate-id: "&cThat queue id is already in use."
+  in-session: "&cYou can't do that while you're in a duel."
+  join-cooldown: "&cWait &f{seconds}s &cbefore opening another queue."
+  leave-penalty: "&cWait &f{seconds}s &cbefore opening another queue."
+  rematch-blocked: "&cYou can't rematch that player yet."
+  not-found: "&cQueue &f{id} &cwas not found. Use &f/cd queues &cto browse active entries."
+  owner-offline: "&cThat queue is no longer available."
+  own-entry: "&cYou can't join your own queue."
+  disabled-mode: "&cThat duel mode is disabled right now."
+  no-default-arena-template: "&cArena queues are not available because no default arena template is configured."
+  join-started: "&eJoining queue &f{id}&e..."
+  list-empty: "&cThere are no active queues right now."
+  info-header: "&eQueue &f{id}"
+  info-owner: "&7Owner: &f{owner}"
+  info-mode: "&7Mode: &f{mode}"
+  info-money: "&7Money: &f{money}"
+  info-created: "&7Created: &f{created}"
+  info-active: "&7Active: &f{active}"
+  gui-refresh-cooldown: "&cWait &f{seconds}s &cbefore refreshing again."
+
+confirm:
+  found: "&6Match found: &f{opponent}&6. Use &a/cd accept &6or &c/cd deny&6."
+  accepted-self: "&aDuel accepted."
+  accepted-other: "&e{player} accepted the duel."
+  denied: "&cThe duel was declined."
+  timeout: "&cThe duel request timed out."
+  not-pending: "&cYou don't have a duel request waiting."
+
+duel:
+  preparing: "&eSetting up the duel..."
+  teleporting: "&eTeleporting players..."
+  started: "&aFight!"
+  won: "&aYou beat {opponent}!"
+  lost: "&cYou lost to {opponent}."
+  arena-won: "&aYou won the arena duel against {opponent}!"
+  arena-lost: "&cYou lost the arena duel to {opponent}."
+  surrendered: "&cYou surrendered."
+  cancelled: "&cDuel cancelled: {reason}"
+  no-session: "&cYou're not in a duel right now."
+  no-safe-spawn: "&cCouldn't find a safe Wild spawn."
+  provision-failed: "&cCouldn't prepare the arena instance."
+  teleport-failed: "&cCouldn't start the duel because teleporting failed."
+  arena-title-win-title: "&aVictory"
+  arena-title-win-subtitle: "&fYou beat {opponent}"
+  arena-title-lose-title: "&cDefeat"
+  arena-title-lose-subtitle: "&fLost to {opponent}"
+
+admin:
+  reload-done: "&aCookieDuel configs reloaded."
+  reload-failed: "&cReload failed: &f{reason}"
+  no-permission: "&cYou don't have permission for that."
+  forcestop-done: "&eStopped the duel for &f{player}&e."
+  forcestop-missing: "&cThat player is not in a duel session."
+  cleanup-started: "&eCleaning up leftover duel worlds..."
+  cleanup-done: "&aCleanup finished. Removed &f{count}&a leftover duel worlds."
+  cleanup-failed: "&cCleanup failed: &f{reason}"
+
+gui:
+  queue-browser:
+    title: "&8Active Duel Queues"
+    empty-name: "&7No active queues"
+    empty-lore:
+      - "&8No one has opened a queue yet."
+      - "&8Use /cd queue <id> <mode> to create one."
+    entry-name: "&e{id}"
+    entry-lore:
+      - "&7ID: &f{id}"
+      - "&7Owner: &f{owner}"
+      - "&7Mode: &f{mode}"
+      - "&7Money: &f{money}"
+      - ""
+      - "&eClick to join this queue."
+    previous-name: "&ePrevious page"
+    previous-lore:
+      - "&7Go to the previous page."
+    next-name: "&eNext page"
+    next-lore:
+      - "&7Go to the next page."
+    refresh-name: "&bRefresh"
+    refresh-lore:
+      - "&7Reload the queue list."
+      - "&7Cooldown: 5 seconds."
+    border-name: " "

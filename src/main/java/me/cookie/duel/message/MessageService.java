@@ -5,7 +5,9 @@ import org.bukkit.command.CommandSender;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.entity.Player;
 
+import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 public final class MessageService {
 
@@ -28,13 +30,38 @@ public final class MessageService {
     }
 
     public String render(String path, Map<String, String> placeholders) {
-        FileConfiguration config = configService.messagesConfig();
+        return prefix() + renderRaw(path, placeholders);
+    }
+
+    public String renderRaw(String path, Map<String, String> placeholders) {
+        FileConfiguration config = configService.langConfig();
         String raw = config.getString(path, path);
         String formatted = raw;
         for (Map.Entry<String, String> entry : placeholders.entrySet()) {
             formatted = formatted.replace("{" + entry.getKey() + "}", entry.getValue());
         }
         return translateLegacyColors(formatted);
+    }
+
+    public List<String> renderRawList(String path, Map<String, String> placeholders) {
+        FileConfiguration config = configService.langConfig();
+        return config.getStringList(path).stream()
+                .map(line -> applyPlaceholders(line, placeholders))
+                .map(this::translateLegacyColors)
+                .collect(Collectors.toList());
+    }
+
+    private String prefix() {
+        String rawPrefix = configService.langConfig().getString("prefix", "");
+        return rawPrefix.isBlank() ? "" : translateLegacyColors(rawPrefix);
+    }
+
+    private String applyPlaceholders(String raw, Map<String, String> placeholders) {
+        String formatted = raw;
+        for (Map.Entry<String, String> entry : placeholders.entrySet()) {
+            formatted = formatted.replace("{" + entry.getKey() + "}", entry.getValue());
+        }
+        return formatted;
     }
 
     private String translateLegacyColors(String input) {

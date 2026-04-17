@@ -23,7 +23,7 @@ public final class ConfigService {
     private MainConfig mainConfig;
     private QueuesConfig queuesConfig;
     private WorldsConfig worldsConfig;
-    private FileConfiguration messagesConfig;
+    private FileConfiguration langConfig;
 
     public ConfigService(JavaPlugin plugin) {
         this.plugin = plugin;
@@ -41,13 +41,13 @@ public final class ConfigService {
         FileConfiguration queuesYaml = YamlConfiguration.loadConfiguration(new File(plugin.getDataFolder(), "queues.yml"));
         FileConfiguration worldsYaml = YamlConfiguration.loadConfiguration(new File(plugin.getDataFolder(), "worlds.yml"));
         FileConfiguration blacklistYaml = YamlConfiguration.loadConfiguration(new File(plugin.getDataFolder(), "blacklist.yml"));
-        FileConfiguration messagesYaml = YamlConfiguration.loadConfiguration(new File(plugin.getDataFolder(), "messages.yml"));
+        FileConfiguration langYaml = YamlConfiguration.loadConfiguration(new File(plugin.getDataFolder(), "lang.yml"));
 
         this.blacklistConfig = blacklistConfigLoader.load(blacklistYaml);
         this.mainConfig = mainConfigLoader.load(mainYaml);
         this.queuesConfig = queuesConfigLoader.load(queuesYaml);
         this.worldsConfig = worldsConfigLoader.load(worldsYaml);
-        this.messagesConfig = messagesYaml;
+        this.langConfig = langYaml;
 
         validator.validate(mainConfig, queuesConfig, worldsConfig);
     }
@@ -68,8 +68,8 @@ public final class ConfigService {
         return worldsConfig;
     }
 
-    public FileConfiguration messagesConfig() {
-        return messagesConfig;
+    public FileConfiguration langConfig() {
+        return langConfig;
     }
 
     private void saveDefaultFiles() {
@@ -81,7 +81,7 @@ public final class ConfigService {
         saveDefaultFile("queues.yml");
         saveDefaultFile("worlds.yml");
         saveDefaultFile("blacklist.yml");
-        saveDefaultFile("messages.yml");
+        saveDefaultFile("lang.yml");
     }
 
     private void saveDefaultFile(String name) {

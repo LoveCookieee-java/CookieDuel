@@ -46,6 +46,9 @@ wild:
     nearby-obstruction-check-radius: 1
 
 arena-instance:
+  # Player-created arena queues use this template unless you change the code to select another one.
+  default-template: "default"
+
   templates:
     default:
       enabled: true

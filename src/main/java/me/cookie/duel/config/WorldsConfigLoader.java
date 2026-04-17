@@ -66,7 +66,11 @@ public final class WorldsConfigLoader {
             templates.put(templateId, template);
         }
 
-        return new WorldsConfig(wild, Map.copyOf(templates));
+        return new WorldsConfig(
+                wild,
+                arenaSection.getString("default-template", "default"),
+                Map.copyOf(templates)
+        );
     }
 
     private SerializableLocation loadLocation(ConfigurationSection section) {

@@ -1,11 +1,8 @@
 package me.cookie.duel.config;
 
-import me.cookie.duel.config.model.ArenaTemplateDefinition;
 import me.cookie.duel.config.model.MainConfig;
-import me.cookie.duel.config.model.QueueDefinition;
 import me.cookie.duel.config.model.QueuesConfig;
 import me.cookie.duel.config.model.WorldsConfig;
-import me.cookie.duel.duel.DuelModeType;
 import org.bukkit.Bukkit;
 import org.bukkit.World;
 
@@ -26,24 +23,27 @@ public final class ConfigurationValidator {
         }
 
         Path worldContainer = Bukkit.getWorldContainer().toPath();
-        for (QueueDefinition queue : queuesConfig.queues().values()) {
-            if (queue.mode() == DuelModeType.ARENA_INSTANCE) {
-                if (queue.templateId() == null || queue.templateId().isBlank()) {
-                    throw new ConfigurationException("ARENA_INSTANCE queue '" + queue.id() + "' is missing a template id.");
-                }
+        if (mainConfig.modes().arenaInstance().enabled()) {
+            if (worldsConfig.arenaTemplates().isEmpty()) {
+                throw new ConfigurationException("ARENA_INSTANCE is enabled, but no arena templates are configured.");
+            }
 
-                ArenaTemplateDefinition template = worldsConfig.arenaTemplates().get(queue.templateId());
-                if (template == null || !template.enabled()) {
-                    throw new ConfigurationException("Queue '" + queue.id() + "' points to a missing or disabled template '" + queue.templateId() + "'.");
-                }
+            String defaultTemplateId = worldsConfig.defaultArenaTemplateId();
+            if (defaultTemplateId == null || defaultTemplateId.isBlank()) {
+                throw new ConfigurationException("ARENA_INSTANCE needs a default template id in worlds.yml.");
+            }
 
-                Path templatePath = worldContainer.resolve(template.templateWorldName());
-                if (!Files.isDirectory(templatePath)) {
-                    throw new ConfigurationException(
-                            "Template world folder for queue '" + queue.id() + "' was not found: " + templatePath
-                                    + ". Create the template world before startup."
-                    );
-                }
+            var defaultTemplate = worldsConfig.arenaTemplates().get(defaultTemplateId);
+            if (defaultTemplate == null || !defaultTemplate.enabled()) {
+                throw new ConfigurationException("Default arena template '" + defaultTemplateId + "' is missing or disabled.");
+            }
+
+            Path templatePath = worldContainer.resolve(defaultTemplate.templateWorldName());
+            if (!Files.isDirectory(templatePath)) {
+                throw new ConfigurationException(
+                        "Default arena template folder was not found: " + templatePath
+                                + ". Create the template world before startup."
+                );
             }
         }
     }

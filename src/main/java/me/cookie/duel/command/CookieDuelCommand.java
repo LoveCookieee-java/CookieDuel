@@ -1,7 +1,9 @@
 package me.cookie.duel.command;
 
 import me.cookie.duel.config.ConfigService;
-import me.cookie.duel.config.model.QueueDefinition;
+import me.cookie.duel.duel.DuelModeType;
+import me.cookie.duel.duel.queue.PlayerQueueEntry;
+import me.cookie.duel.duel.queue.gui.QueueGuiService;
 import me.cookie.duel.duel.service.DuelLifecycleService;
 import me.cookie.duel.message.MessageService;
 import me.cookie.duel.scheduler.SchedulerFacade;
@@ -13,24 +15,30 @@ import org.bukkit.command.TabCompleter;
 import org.bukkit.entity.Player;
 
 import java.util.ArrayList;
-import java.util.Comparator;
+import java.time.ZoneId;
+import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 
 public final class CookieDuelCommand implements CommandExecutor, TabCompleter {
 
+    private static final DateTimeFormatter CREATED_AT_FORMAT = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm");
+
     private final ConfigService configService;
     private final DuelLifecycleService duelLifecycleService;
+    private final QueueGuiService queueGuiService;
     private final MessageService messageService;
     private final SchedulerFacade schedulerFacade;
 
     public CookieDuelCommand(ConfigService configService,
                              DuelLifecycleService duelLifecycleService,
+                             QueueGuiService queueGuiService,
                              MessageService messageService,
                              SchedulerFacade schedulerFacade) {
         this.configService = configService;
         this.duelLifecycleService = duelLifecycleService;
+        this.queueGuiService = queueGuiService;
         this.messageService = messageService;
         this.schedulerFacade = schedulerFacade;
     }
@@ -56,7 +64,7 @@ public final class CookieDuelCommand implements CommandExecutor, TabCompleter {
         }
 
         if (!(sender instanceof Player player)) {
-            sender.sendMessage("Only players can use that command.");
+            messageService.send(sender, "general.player-only");
             return true;
         }
 
@@ -83,58 +91,55 @@ public final class CookieDuelCommand implements CommandExecutor, TabCompleter {
     }
 
     private boolean handleQueue(Player player, String[] args) {
-        if (args.length < 2) {
-            messageService.send(player, "queue.usage");
+        if (args.length < 3) {
+            messageService.send(player, "queue.create-usage");
             return true;
         }
 
-        duelLifecycleService.joinQueue(player, args[1]);
+        DuelModeType mode = parseMode(args[2]);
+        if (mode == null) {
+            messageService.send(player, "general.invalid-mode");
+            return true;
+        }
+
+        duelLifecycleService.createQueueEntry(player, args[1], mode);
         return true;
     }
 
     private boolean handleQueues(CommandSender sender) {
-        List<QueueDefinition> enabledQueues = configService.queuesConfig().queues().values().stream()
-                .filter(QueueDefinition::enabled)
-                .sorted(Comparator.comparing(QueueDefinition::id, String.CASE_INSENSITIVE_ORDER))
-                .toList();
-
-        if (enabledQueues.isEmpty()) {
-            messageService.send(sender, "queue.list-empty");
+        if (!(sender instanceof Player player)) {
+            messageService.send(sender, "general.player-only");
             return true;
         }
 
-        messageService.send(sender, "queue.list-header");
-        for (QueueDefinition queue : enabledQueues) {
-            messageService.send(sender, "queue.list-entry", Map.of(
-                    "queue", queue.id(),
-                    "name", queue.displayName(),
-                    "mode", queue.mode().name()
-            ));
-        }
+        queueGuiService.open(player);
         return true;
     }
 
     private boolean handleQueueInfo(CommandSender sender, String[] args) {
         if (args.length < 2) {
-            sender.sendMessage("/cookieduel info <queueId>");
+            messageService.send(sender, "queue.info-usage");
             return true;
         }
 
-        QueueDefinition queue = configService.queuesConfig().queues().get(args[1]);
-        if (queue == null) {
-            messageService.send(sender, "queue.info-missing", Map.of("queue", args[1]));
+        PlayerQueueEntry entry = duelLifecycleService.queueEntry(args[1]).orElse(null);
+        if (entry == null) {
+            messageService.send(sender, "queue.not-found", Map.of("id", args[1]));
             return true;
         }
 
-        messageService.send(sender, "queue.info-header", Map.of("queue", queue.id()));
-        messageService.send(sender, "queue.info-name", Map.of("name", queue.displayName()));
-        messageService.send(sender, "queue.info-mode", Map.of("mode", queue.mode().name()));
-        messageService.send(sender, "queue.info-enabled", Map.of("enabled", queue.enabled() ? "Yes" : "No"));
-        messageService.send(sender, "queue.info-confirm", Map.of("confirm", queue.confirmRequired() ? "Yes" : "No"));
-
-        if (queue.templateId() != null && !queue.templateId().isBlank()) {
-            messageService.send(sender, "queue.info-template", Map.of("template", queue.templateId()));
-        }
+        messageService.send(sender, "queue.info-header", Map.of("id", entry.id()));
+        messageService.send(sender, "queue.info-owner", Map.of("owner", entry.ownerName()));
+        messageService.send(sender, "queue.info-mode", Map.of("mode", entry.mode().name()));
+        messageService.send(sender, "queue.info-money", Map.of("money", "$" + entry.money()));
+        messageService.send(sender, "queue.info-created", Map.of(
+                "created",
+                CREATED_AT_FORMAT.format(entry.createdAt().atZone(ZoneId.systemDefault()))
+        ));
+        messageService.send(sender, "queue.info-active", Map.of(
+                "active",
+                messageService.renderRaw(entry.active() ? "general.value-yes" : "general.value-no", Map.of())
+        ));
         return true;
     }
 
@@ -156,7 +161,7 @@ public final class CookieDuelCommand implements CommandExecutor, TabCompleter {
                     duelLifecycleService.reloadQueues();
                     messageService.send(sender, "admin.reload-done");
                 } catch (Exception exception) {
-                    sender.sendMessage("Reload failed: " + exception.getMessage());
+                    messageService.send(sender, "admin.reload-failed", Map.of("reason", exception.getMessage()));
                 }
                 return true;
             }
@@ -178,7 +183,7 @@ public final class CookieDuelCommand implements CommandExecutor, TabCompleter {
                 duelLifecycleService.cleanupLeftoverInstances().whenComplete((count, throwable) -> {
                     deliverToSender(sender, throwable == null
                             ? messageService.render("admin.cleanup-done", Map.of("count", String.valueOf(count)))
-                            : "Cleanup failed: " + throwable.getMessage());
+                            : messageService.render("admin.cleanup-failed", Map.of("reason", throwable.getMessage())));
                 });
                 return true;
             }
@@ -206,15 +211,19 @@ public final class CookieDuelCommand implements CommandExecutor, TabCompleter {
         }
 
         if (args.length == 2 && "queue".equalsIgnoreCase(args[0])) {
-            configService.queuesConfig().queues().values().stream()
-                    .filter(QueueDefinition::enabled)
-                    .map(QueueDefinition::id)
-                    .forEach(suggestions::add);
             return filter(suggestions, args[1]);
         }
 
+        if (args.length == 3 && "queue".equalsIgnoreCase(args[0])) {
+            suggestions.add("WILD");
+            suggestions.add("ARENA_INSTANCE");
+            return filter(suggestions, args[2]);
+        }
+
         if (args.length == 2 && "info".equalsIgnoreCase(args[0])) {
-            suggestions.addAll(configService.queuesConfig().queues().keySet());
+            duelLifecycleService.activeQueueEntries().stream()
+                    .map(PlayerQueueEntry::id)
+                    .forEach(suggestions::add);
             return filter(suggestions, args[1]);
         }
 
@@ -251,9 +260,9 @@ public final class CookieDuelCommand implements CommandExecutor, TabCompleter {
     }
 
     private void sendHelp(CommandSender sender) {
-        sender.sendMessage("/cookieduel queue <queueId>");
+        sender.sendMessage("/cookieduel queue <id> <mode>");
         sender.sendMessage("/cookieduel queues");
-        sender.sendMessage("/cookieduel info <queueId>");
+        sender.sendMessage("/cookieduel info <id>");
         sender.sendMessage("/cookieduel leave");
         sender.sendMessage("/cookieduel accept");
         sender.sendMessage("/cookieduel deny");
@@ -261,6 +270,18 @@ public final class CookieDuelCommand implements CommandExecutor, TabCompleter {
         sender.sendMessage("/cookieduel admin reload");
         sender.sendMessage("/cookieduel admin forcestop <player>");
         sender.sendMessage("/cookieduel admin cleanupinstances");
-        sender.sendMessage("Queue IDs are loaded from queues.yml. Use /cookieduel queues to list enabled queues.");
+        sender.sendMessage("Use /cookieduel queue <id> <mode> to open a queue, then /cookieduel queues to browse active entries.");
+    }
+
+    private DuelModeType parseMode(String raw) {
+        if (raw == null || raw.isBlank()) {
+            return null;
+        }
+
+        try {
+            return DuelModeType.valueOf(raw.trim().toUpperCase(Locale.ROOT));
+        } catch (IllegalArgumentException exception) {
+            return null;
+        }
     }
 }
