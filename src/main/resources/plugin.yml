@@ -1,0 +1,14 @@
+name: CookieDuel
+version: ${version}
+main: me.cookie.duel.CookieDuelPlugin
+api-version: "1.21"
+author: Cookie
+commands:
+  cookieduel:
+    description: Main CookieDuel command
+    usage: /cookieduel
+    aliases: [cduel]
+permissions:
+  cookieduel.admin:
+    description: CookieDuel admin commands
+    default: op

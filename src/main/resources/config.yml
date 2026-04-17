@@ -1,0 +1,46 @@
+# =========================================
+# CookieDuel - Main Config
+# =========================================
+# Notes:
+# - This plugin supports 2 duel modes only:
+#   1) WILD
+#   2) ARENA_INSTANCE
+# - WILD teleports both players into the configured world using a shared safe center.
+# - The configured WILD world must already be loaded before the plugin enables.
+# - ARENA_INSTANCE clones a template world per accepted duel, then deletes it after the duel.
+# =========================================
+
+general:
+  debug: false
+
+lobby:
+  enabled: true
+  world: "world"
+  x: 0.5
+  y: 80.0
+  z: 0.5
+  yaw: 0.0
+  pitch: 0.0
+
+modes:
+  wild:
+    enabled: true
+
+  arena-instance:
+    enabled: true
+    max-active-instances: 3
+    cleanup-leftovers-on-startup: true
+    instance-create-timeout-seconds: 15
+    instance-delete-timeout-seconds: 15
+
+duel:
+  confirm-timeout-seconds: 10
+  prestart-countdown-seconds: 5
+  max-fight-seconds: 300
+  restore-inventory-after-duel: true
+  teleport-back-to-lobby-after-duel: true
+
+anti-abuse:
+  queue-join-cooldown-seconds: 3
+  queue-leave-penalty-seconds: 10
+  rematch-block-seconds: 180

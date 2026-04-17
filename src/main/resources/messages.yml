@@ -1,0 +1,48 @@
+# =========================================
+# CookieDuel - Messages
+# =========================================
+# Notes:
+# - This file is safe to customize for wording and colors.
+# - Keep placeholder tokens such as {queue}, {player}, {opponent}, {seconds}, and {reason}.
+# =========================================
+
+queue:
+  joined: "&aYou joined queue: &f{queue}"
+  left: "&eYou left the queue."
+  not-in-queue: "&cYou are not currently in a queue."
+  already-in-queue: "&cYou are already in a queue."
+  in-session: "&cYou cannot queue while you are already in a duel session."
+  queue-not-found: "&cUnknown queue: &f{queue}"
+  queue-disabled: "&cThat queue is currently disabled."
+  join-cooldown: "&cYou must wait &f{seconds}s &cbefore joining a queue again."
+  leave-penalty: "&cYou must wait &f{seconds}s &cbefore joining a queue again."
+  rematch-blocked: "&cYou cannot immediately rematch this opponent yet."
+
+confirm:
+  found: "&6Match found against &f{opponent}&6. Type &a/cookieduel accept &6or &c/cookieduel deny"
+  accepted-self: "&aYou accepted the duel."
+  accepted-other: "&e{player} accepted."
+  denied: "&cThe duel was denied."
+  timeout: "&cThe duel confirmation expired."
+  not-pending: "&cYou do not have a duel waiting for confirmation."
+
+duel:
+  preparing: "&ePreparing duel..."
+  teleporting: "&eTeleporting players..."
+  started: "&aFight!"
+  won: "&aYou won against {opponent}!"
+  lost: "&cYou lost against {opponent}."
+  surrendered: "&cYou surrendered."
+  cancelled: "&cDuel cancelled: {reason}"
+  no-session: "&cYou are not in an active duel session."
+  no-safe-spawn: "&cNo safe WILD spawn pair was found."
+  provision-failed: "&cThe arena instance could not be prepared."
+  teleport-failed: "&cThe duel teleport failed."
+
+admin:
+  reload-done: "&aCookieDuel configs reloaded."
+  no-permission: "&cYou do not have permission to do that."
+  forcestop-done: "&eForced the duel session to stop for &f{player}&e."
+  forcestop-missing: "&cThat player is not in a duel session."
+  cleanup-started: "&eInstance cleanup started."
+  cleanup-done: "&aInstance cleanup finished. Removed &f{count}&a leftover instance worlds."

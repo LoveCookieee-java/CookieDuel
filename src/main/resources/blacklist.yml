@@ -1,0 +1,66 @@
+# =========================================
+# CookieDuel - WILD Spawn Blacklist
+# =========================================
+# Notes:
+# - This file is used by the WILD spawn validation system.
+# - Entries should normally be Bukkit/Paper Material names such as MAGMA_BLOCK or SWEET_BERRY_BUSH.
+# - Group aliases are also supported for convenience:
+#   - tag:leaves
+#   - tag:fences
+#   - tag:walls
+# - floor-blacklist:
+#   exact blocks that must not be used as the floor under either duelist
+# - body-blacklist:
+#   bad blocks for feet/head space and tight local obstruction checks
+# - nearby-blacklist:
+#   hazardous or annoying nearby combat terrain around a candidate spawn
+# =========================================
+
+wild:
+  floor-blacklist:
+    - CACTUS
+    - MAGMA_BLOCK
+    - CAMPFIRE
+    - SOUL_CAMPFIRE
+    - LAVA
+    - FIRE
+    - SOUL_FIRE
+    - POWDER_SNOW
+    - COBWEB
+    - SWEET_BERRY_BUSH
+    - POINTED_DRIPSTONE
+    - IRON_BARS
+    - tag:leaves
+    - tag:fences
+    - tag:walls
+
+  body-blacklist:
+    - LAVA
+    - FIRE
+    - SOUL_FIRE
+    - COBWEB
+    - POWDER_SNOW
+    - SWEET_BERRY_BUSH
+    - POINTED_DRIPSTONE
+    - CACTUS
+    - IRON_BARS
+    - tag:leaves
+    - tag:fences
+    - tag:walls
+
+  nearby-blacklist:
+    - CACTUS
+    - MAGMA_BLOCK
+    - CAMPFIRE
+    - SOUL_CAMPFIRE
+    - LAVA
+    - FIRE
+    - SOUL_FIRE
+    - COBWEB
+    - POWDER_SNOW
+    - SWEET_BERRY_BUSH
+    - POINTED_DRIPSTONE
+    - IRON_BARS
+    - tag:leaves
+    - tag:fences
+    - tag:walls

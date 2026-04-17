@@ -1,0 +1,85 @@
+# =========================================
+# CookieDuel - World Settings
+# =========================================
+# WILD:
+# - world: target world for both players
+# - the configured world must already be loaded before CookieDuel enables
+# - random search always starts from that world's spawn location
+# - the plugin finds one safe center
+# - then places both players symmetrically around that center
+#
+# ARENA_INSTANCE:
+# - template-world-name must already exist on disk
+# - plugin clones a fresh world instance per accepted duel
+# =========================================
+
+wild:
+  # This world must already be loaded.
+  # CookieDuel does not auto-load the WILD world for you.
+  world: "pvp_world"
+
+  # Random WILD search always radiates outward from this world's spawn location.
+  # No custom center coordinates are used right now.
+  use-random-safe-location: true
+
+  # Distance between the two duelists.
+  # Example: 10.0 means each player is placed ~5 blocks from center.
+  spawn-distance: 10.0
+
+  # To keep both players on nearly equal terrain.
+  max-y-difference: 1
+
+  random-location:
+    min-radius: 500
+    max-radius: 3000
+    max-attempts: 48
+    avoid-water: true
+    avoid-lava: true
+    avoid-dangerous-blocks: true
+    avoid-nearby-players-radius: 32
+
+  terrain-validation:
+    # Sample nearby columns around each spawn and reject rough combat terrain.
+    local-sample-radius: 2
+
+    # Maximum nearby floor variation allowed for each spawn point.
+    max-local-height-spread: 2
+
+    # Keep both duelists on nearly equivalent terrain roughness.
+    max-local-height-spread-difference: 1
+
+    # Reject obvious cliff or ledge-like edges near the spawn.
+    edge-check-radius: 2
+    max-edge-drop: 3
+
+    # Reject nearby hazards or cramped obstacles in the immediate fight area.
+    nearby-hazard-check-radius: 2
+    nearby-obstruction-check-radius: 1
+
+arena-instance:
+  templates:
+    default:
+      enabled: true
+      # This template world folder must already exist on disk in the server world container.
+      template-world-name: "pvp_template"
+      instance-world-prefix: "duel_instance_"
+
+      spawn-a:
+        x: -5.5
+        y: 65.0
+        z: 0.5
+        yaw: 90.0
+        pitch: 0.0
+
+      spawn-b:
+        x: 5.5
+        y: 65.0
+        z: 0.5
+        yaw: -90.0
+        pitch: 0.0
+
+      settings:
+        auto-set-gamerules: true
+        allow-block-break: false
+        allow-block-place: false
+        border-size: 48

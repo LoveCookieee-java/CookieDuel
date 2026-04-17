@@ -1,0 +1,21 @@
+# =========================================
+# CookieDuel - Queues
+# =========================================
+# mode values:
+# - WILD
+# - ARENA_INSTANCE
+# =========================================
+
+queues:
+  wild-basic:
+    enabled: true
+    display-name: "Wild Basic"
+    mode: "WILD"
+    confirm-required: true
+
+  boxed-instance:
+    enabled: true
+    display-name: "Boxed Instance"
+    mode: "ARENA_INSTANCE"
+    template: "default"
+    confirm-required: true
