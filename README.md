@@ -1,60 +1,88 @@
 # CookieDuel
 
-CookieDuel is a Paper duel plugin built around short-lived duel sessions instead of loose command state.
-It supports exactly two modes: `WILD` and `ARENA`.
+CookieDuel is a fast Paper duel plugin built for servers that want clean queue-based matchmaking without bloated setup or confusing command flow.
+Players create a duel room with a single command, browse live rooms in a polished GUI, and fight in either open-world `WILD` matches or temporary cloned `ARENA` instances.
+
+## Why CookieDuel
+
+- Simple player flow: `/cd queue <mode>`, `/cd list`, `/cd random`
+- Only two clear public modes: `WILD` and `ARENA`
+- Queue identity is automatic and tied to the owner's player name
+- 54-slot live queue browser with paging, refresh, and viewer profile card
+- Safe arena instance provisioning and cleanup
+- Centralized messages in `lang.yml`
+- Paper 1.21 to 1.21.11 support, with Folia-safe direction in scheduling-sensitive areas
 
 ## Supported versions
 
-- Paper `1.21 - 1.21.11`
-- Folia supported through the scheduler layer used by teleports, GUI actions, and duel lifecycle work
+- Paper and compatible forks such as Purpur, Leaf, and Folia: `1.21 - 1.21.11`
 - Java `21`
 
-## Features
-
-- Player-created duel queue entries
-- 54-slot queue browser GUI with pagination
-- Shared-center Wild spawns with blacklist and terrain checks
-- Per-duel arena world cloning and cleanup
-- Session-based prepare, provision, teleport, fight, and cleanup flow
-- Split config files and one central `lang.yml`
-
-## Modes
+## Duel modes
 
 ### WILD
 
-Wild duels use one configured world from `worlds.yml`. CookieDuel searches around that world's spawn, finds one safe center, and places both players on opposite sides of it with roughly equal terrain conditions.
+Wild duels use one configured world from `worlds.yml`. CookieDuel searches around that world's spawn, finds a safe center, and places both players on opposite sides with fair spacing.
 
 ### ARENA
 
-Arena duels clone a configured template world when the duel starts, teleport both players into the temporary instance, then unload and delete it when the duel ends.
+Arena duels clone a configured template world when the fight starts, teleport both players into the temporary arena, and fully clean it up after the duel ends.
 
-## Commands
+## Player commands
 
-- `/cd queue <mode>` - create a queue entry tied to your player name
+- `/cd queue <mode>` - create a queue room using your player name as the room identity
 - `/cd list` - open the queue browser GUI
-- `/cd random` - join a random queue you can legally enter
-- `/cd leave`
-- `/cd surrender`
-- `/cd admin reload`
-- `/cd admin forcestop <player>`
-- `/cd admin cleanupinstances`
-- Alias: `/cd`
+- `/cd random` - join a random valid queue
+- `/cd leave` - leave your queue before the duel starts
+- `/cd surrender` - surrender an active duel
 
-Modes for queue creation:
+Available queue modes:
 
 - `WILD`
 - `ARENA`
 
-Queue identity rules:
+## Admin commands
 
-- Queue ids are automatic and always use the owner player's name
-- Players do not enter a custom queue id anymore
+- `/cd admin reload`
+- `/cd admin forcestop <player>`
+- `/cd admin cleanupinstances`
 
-## Dependencies
+Alias:
 
-No hard plugin dependencies are required.
-`PlaceholderAPI` is optional and enables profile-head point display plus the `%CD_WILD%` and `%CD_ARENA%` placeholders.
-If `PlayerPoints` is installed alongside `PlaceholderAPI`, the queue GUI profile card can show PlayerPoints through PlaceholderAPI.
+- `/cd`
+
+## Queue browser
+
+`/cd list` opens the live queue GUI.
+
+- Queue entries show `Player`, `Mode`, and `Money`
+- The viewer's own head is displayed in a dedicated slot
+- The profile card shows `Player`, `Money`, `Kills`, `Deaths`, and `Points`
+- Previous page, next page, and refresh controls stay available on the bottom row
+
+## Optional integrations
+
+CookieDuel does not hard-require external plugins.
+
+- `PlaceholderAPI` is an optional soft dependency
+- `PlayerPoints` can be displayed through PlaceholderAPI if its placeholders are available
+
+If PlaceholderAPI is missing, CookieDuel still runs normally. GUI values that depend on placeholders fall back safely, and CookieDuel's own placeholders simply do not register.
+
+## Placeholders
+
+When PlaceholderAPI is installed, CookieDuel registers:
+
+- `%CD_WILD%` - total active `WILD` queue rooms
+- `%CD_ARENA%` - total active `ARENA` queue rooms
+
+## Configuration files
+
+- `config.yml` - duel flow, timing, and mode settings
+- `worlds.yml` - Wild world settings and arena template configuration
+- `queues.yml` - queue-related settings
+- `blacklist.yml` - Wild spawn blacklist rules
+- `lang.yml` - GUI text, messages, labels, and titles
 
 ## Setup
 
@@ -64,26 +92,14 @@ If `PlayerPoints` is installed alongside `PlaceholderAPI`, the queue GUI profile
 4. Make sure arena template worlds already exist in the server world container.
 5. Start the server and review the startup log.
 
-## Config files
-
-- `config.yml` - general duel and anti-abuse settings
-- `worlds.yml` - Wild world settings and arena templates
-- `queues.yml` - reserved for queue-related settings; live queue entries are created in game
-- `blacklist.yml` - Wild spawn blacklist rules
-- `lang.yml` - plugin prefix, chat messages, GUI text, and titles
-
 ## Notes
 
-- Queue entries are created by players in game; they are not a static list from config.
-- `/cd queue <mode>` creates a queue under the player's own name automatically.
-- `/cd list` opens the live queue browser, shows a viewer profile head, and supports paging plus manual refresh.
-- `/cd random` picks one valid queue entry at random, then uses the normal join flow.
-- `%CD_WILD%` and `%CD_ARENA%` return the live number of active queue rooms for each mode when PlaceholderAPI is installed.
-- Wild search uses the configured world's spawn as the search origin.
-- The Wild world must already be loaded. CookieDuel does not auto-load it.
-- Arena templates must already exist and be valid on disk.
-- A duel only enters `FIGHTING` after both teleports succeed.
-- Folia support is intentional, but you should still test with your own server stack before production use.
+- Queue rooms are created live by players, not pre-defined in config
+- A player can only own one active queue at a time
+- `/cd queue <mode>` automatically uses the player's own name for queue identity
+- `%CD_WILD%` and `%CD_ARENA%` reflect live queue counts, not cached values
+- Arena templates must already exist on disk
+- Wild spawn search uses the configured world's spawn as its origin
 
 ## Build
 
