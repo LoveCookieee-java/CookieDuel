@@ -20,7 +20,8 @@ modes:
     enabled: true
 
   arena-instance:
-    enabled: true
+    # Off by default. Turn this on after your arena template world is ready.
+    enabled: false
     # Prevent too many temporary duel worlds from being active at once.
     max-active-instances: 3
     # Removes leftover duel worlds from old crashes or bad shutdowns.

@@ -5,7 +5,7 @@
 wild:
   # This world must already be loaded before CookieDuel starts.
   # The plugin will not auto-load it.
-  world: "pvp_world"
+  world: "world"
 
   # Wild spawn search always starts from the world's spawn.
   # There is no custom center location here.
