@@ -8,8 +8,9 @@ import java.util.Map;
 public final class QueueGuiHolder implements InventoryHolder {
 
     public static final int PREVIOUS_SLOT = 45;
-    public static final int NEXT_SLOT = 52;
-    public static final int REFRESH_SLOT = 53;
+    public static final int REFRESH_SLOT = 49;
+    public static final int NEXT_SLOT = 53;
+    public static final int PROFILE_SLOT = 4;
 
     private final int page;
     private final Map<Integer, String> queueIdsBySlot;

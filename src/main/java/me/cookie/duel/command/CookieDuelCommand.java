@@ -170,7 +170,7 @@ public final class CookieDuelCommand implements CommandExecutor, TabCompleter {
 
         if (args.length == 2 && "queue".equalsIgnoreCase(args[0])) {
             suggestions.add("WILD");
-            suggestions.add("ARENA_INSTANCE");
+            suggestions.add("ARENA");
             return filter(suggestions, args[1]);
         }
 
@@ -219,14 +219,6 @@ public final class CookieDuelCommand implements CommandExecutor, TabCompleter {
     }
 
     private DuelModeType parseMode(String raw) {
-        if (raw == null || raw.isBlank()) {
-            return null;
-        }
-
-        try {
-            return DuelModeType.valueOf(raw.trim().toUpperCase(Locale.ROOT));
-        } catch (IllegalArgumentException exception) {
-            return null;
-        }
+        return DuelModeType.fromInput(raw);
     }
 }

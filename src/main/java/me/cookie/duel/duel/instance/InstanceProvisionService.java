@@ -89,7 +89,7 @@ public final class InstanceProvisionService {
 
     private boolean reserveInstance(String instanceWorldName) {
         synchronized (activeInstanceWorlds) {
-            int limit = configService.mainConfig().modes().arenaInstance().maxActiveInstances();
+            int limit = configService.mainConfig().modes().arena().maxActiveInstances();
             if (activeInstanceWorlds.size() >= limit) {
                 return false;
             }

@@ -1,8 +1,10 @@
 package me.cookie.duel.duel.queue.gui;
 
+import me.cookie.duel.duel.DuelModeType;
 import me.cookie.duel.duel.queue.PlayerQueueEntry;
 import me.cookie.duel.duel.service.DuelLifecycleService;
 import me.cookie.duel.message.MessageService;
+import me.cookie.duel.player.PlayerProfileService;
 import me.cookie.duel.scheduler.SchedulerFacade;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
@@ -33,14 +35,17 @@ public final class QueueGuiService {
 
     private final DuelLifecycleService duelLifecycleService;
     private final MessageService messageService;
+    private final PlayerProfileService playerProfileService;
     private final SchedulerFacade schedulerFacade;
     private final Map<UUID, Instant> refreshCooldownUntil = new ConcurrentHashMap<>();
 
     public QueueGuiService(DuelLifecycleService duelLifecycleService,
                            MessageService messageService,
+                           PlayerProfileService playerProfileService,
                            SchedulerFacade schedulerFacade) {
         this.duelLifecycleService = duelLifecycleService;
         this.messageService = messageService;
+        this.playerProfileService = playerProfileService;
         this.schedulerFacade = schedulerFacade;
     }
 
@@ -49,7 +54,7 @@ public final class QueueGuiService {
     }
 
     public void open(Player player, int requestedPage) {
-        schedulerFacade.runForEntity(player, () -> player.openInventory(buildInventory(requestedPage)));
+        schedulerFacade.runForEntity(player, () -> player.openInventory(buildInventory(player, requestedPage)));
     }
 
     public void refresh(Player player, QueueGuiHolder holder) {
@@ -70,7 +75,7 @@ public final class QueueGuiService {
         duelLifecycleService.joinQueueEntry(player, queueId);
     }
 
-    private Inventory buildInventory(int requestedPage) {
+    private Inventory buildInventory(Player viewer, int requestedPage) {
         List<PlayerQueueEntry> entries = duelLifecycleService.activeQueueEntries();
         int totalPages = Math.max(1, (int) Math.ceil(entries.size() / (double) CONTENT_SLOTS.size()));
         int page = Math.max(0, Math.min(requestedPage, totalPages - 1));
@@ -88,6 +93,7 @@ public final class QueueGuiService {
 
         fillBorder(inventory);
         addControls(inventory);
+        inventory.setItem(QueueGuiHolder.PROFILE_SLOT, createProfileItem(viewer));
 
         int contentIndex = 0;
         for (int entryIndex = startIndex; entryIndex < endIndex; entryIndex++) {
@@ -155,12 +161,37 @@ public final class QueueGuiService {
         meta.setDisplayName(messageService.renderRaw("gui.queue-browser.entry-name", Map.of("owner", entry.ownerName())));
         meta.setLore(messageService.renderRawList("gui.queue-browser.entry-lore", Map.of(
                 "owner", entry.ownerName(),
-                "mode", entry.mode().name(),
-                "money", String.valueOf(entry.money())
+                "mode", displayMode(entry.mode()),
+                "money", entry.money()
         )));
         meta.addItemFlags(ItemFlag.HIDE_ATTRIBUTES);
         item.setItemMeta(meta);
         return item;
+    }
+
+    private ItemStack createProfileItem(Player viewer) {
+        ItemStack item = new ItemStack(Material.PLAYER_HEAD);
+        SkullMeta meta = (SkullMeta) item.getItemMeta();
+        if (meta == null) {
+            return item;
+        }
+
+        meta.setOwningPlayer(viewer);
+        meta.setDisplayName(messageService.renderRaw("gui.queue-browser.profile-name", Map.of("player", viewer.getName())));
+        meta.setLore(messageService.renderRawList("gui.queue-browser.profile-lore", Map.of(
+                "player", viewer.getName(),
+                "money", playerProfileService.money(viewer),
+                "kills", String.valueOf(playerProfileService.kills(viewer)),
+                "deaths", String.valueOf(playerProfileService.deaths(viewer)),
+                "points", playerProfileService.points(viewer)
+        )));
+        meta.addItemFlags(ItemFlag.HIDE_ATTRIBUTES);
+        item.setItemMeta(meta);
+        return item;
+    }
+
+    private String displayMode(DuelModeType mode) {
+        return messageService.renderRaw("modes." + mode.langKey(), Map.of());
     }
 
     private ItemStack createSimpleItem(Material material, String name, List<String> lore) {

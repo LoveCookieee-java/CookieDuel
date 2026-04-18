@@ -1,6 +1,6 @@
 # CookieDuel main settings.
 # Wild mode uses one loaded world and paired spawns.
-# Arena instance mode clones a template world when a duel starts.
+# Arena mode clones a template world when a duel starts.
 
 general:
   debug: false
@@ -9,7 +9,7 @@ modes:
   wild:
     enabled: true
 
-  arena-instance:
+  arena:
     # Off by default. Turn this on after your arena template world is ready.
     enabled: false
     # Prevent too many temporary duel worlds from being active at once.

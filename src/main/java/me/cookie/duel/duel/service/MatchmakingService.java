@@ -32,7 +32,7 @@ public final class MatchmakingService {
         this.antiAbuseService = antiAbuseService;
     }
 
-    public CreateQueueResult createQueue(UUID ownerId, String ownerName, DuelModeType mode) {
+    public CreateQueueResult createQueue(UUID ownerId, String ownerName, String ownerMoney, DuelModeType mode) {
         String entryId = ownerName == null ? "" : ownerName.trim();
         if (entryId.isEmpty()) {
             return new CreateQueueResult(CreateQueueStatus.INVALID_ID, null, 0L);
@@ -56,7 +56,7 @@ public final class MatchmakingService {
         if (duelSessionManager.isInSession(ownerId)) {
             return new CreateQueueResult(CreateQueueStatus.IN_SESSION, null, 0L);
         }
-        if (mode == DuelModeType.ARENA_INSTANCE && resolveArenaTemplateId().isEmpty()) {
+        if (mode == DuelModeType.ARENA && resolveArenaTemplateId().isEmpty()) {
             return new CreateQueueResult(CreateQueueStatus.NO_ARENA_TEMPLATE, null, 0L);
         }
 
@@ -73,7 +73,7 @@ public final class MatchmakingService {
                 ownerId,
                 ownerName,
                 mode,
-                0L,
+                ownerMoney,
                 Instant.now()
         );
         if (!playerQueueRegistry.add(entry)) {
@@ -129,10 +129,10 @@ public final class MatchmakingService {
             );
         }
 
-        String templateId = entry.mode() == DuelModeType.ARENA_INSTANCE
+        String templateId = entry.mode() == DuelModeType.ARENA
                 ? resolveArenaTemplateId().orElse(null)
                 : null;
-        if (entry.mode() == DuelModeType.ARENA_INSTANCE && templateId == null) {
+        if (entry.mode() == DuelModeType.ARENA && templateId == null) {
             return new JoinQueueResult(JoinQueueStatus.NO_ARENA_TEMPLATE, entry, null, null, 0L);
         }
 
@@ -182,7 +182,7 @@ public final class MatchmakingService {
                 .filter(entry -> !entry.ownerId().equals(challengerId))
                 .filter(entry -> Bukkit.getPlayer(entry.ownerId()) != null)
                 .filter(entry -> isModeEnabled(entry.mode()))
-                .filter(entry -> entry.mode() != DuelModeType.ARENA_INSTANCE || arenaAvailable)
+                .filter(entry -> entry.mode() != DuelModeType.ARENA || arenaAvailable)
                 .toList();
     }
 
@@ -193,7 +193,7 @@ public final class MatchmakingService {
     private boolean isModeEnabled(DuelModeType mode) {
         return switch (mode) {
             case WILD -> configService.mainConfig().modes().wildEnabled();
-            case ARENA_INSTANCE -> configService.mainConfig().modes().arenaInstance().enabled();
+            case ARENA -> configService.mainConfig().modes().arena().enabled();
         };
     }
 

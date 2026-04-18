@@ -14,7 +14,7 @@ public final class MainConfigLoader {
         ConfigurationSection generalSection = requireSection(config, "general");
         ConfigurationSection modesSection = requireSection(config, "modes");
         ConfigurationSection wildModeSection = requireSection(modesSection, "wild");
-        ConfigurationSection arenaModeSection = requireSection(modesSection, "arena-instance");
+        ConfigurationSection arenaModeSection = requireSectionAny(modesSection, "arena", "arena-instance");
         ConfigurationSection duelSection = requireSection(config, "duel");
         ConfigurationSection antiAbuseSection = requireSection(config, "anti-abuse");
 
@@ -64,5 +64,19 @@ public final class MainConfigLoader {
             throw new ConfigurationException("Missing config value: " + parent.getCurrentPath() + "." + path);
         }
         return value;
+    }
+
+    static ConfigurationSection requireSectionAny(ConfigurationSection parent, String... paths) {
+        for (String path : paths) {
+            ConfigurationSection section = parent.getConfigurationSection(path);
+            if (section != null) {
+                return section;
+            }
+        }
+
+        throw new ConfigurationException(
+                "Missing config section: " + parent.getCurrentPath() + "."
+                        + String.join(" or " + parent.getCurrentPath() + ".", paths)
+        );
     }
 }

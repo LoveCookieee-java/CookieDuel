@@ -17,7 +17,7 @@ public final class WorldsConfigLoader {
         ConfigurationSection wildSection = MainConfigLoader.requireSection(config, "wild");
         ConfigurationSection randomLocationSection = MainConfigLoader.requireSection(wildSection, "random-location");
         ConfigurationSection terrainValidationSection = wildSection.getConfigurationSection("terrain-validation");
-        ConfigurationSection arenaSection = MainConfigLoader.requireSection(config, "arena-instance");
+        ConfigurationSection arenaSection = MainConfigLoader.requireSectionAny(config, "arena", "arena-instance");
         ConfigurationSection templatesSection = MainConfigLoader.requireSection(arenaSection, "templates");
 
         WildLocationSettings wild = new WildLocationSettings(

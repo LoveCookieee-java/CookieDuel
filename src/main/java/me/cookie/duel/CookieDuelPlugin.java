@@ -21,6 +21,11 @@ import me.cookie.duel.listener.InstanceProtectionListener;
 import me.cookie.duel.listener.PlayerLifecycleListener;
 import me.cookie.duel.listener.QueueGuiListener;
 import me.cookie.duel.message.MessageService;
+import me.cookie.duel.placeholder.CookieDuelPlaceholderExpansion;
+import me.cookie.duel.placeholder.NoopPlaceholderSupport;
+import me.cookie.duel.placeholder.PapiPlaceholderSupport;
+import me.cookie.duel.placeholder.PlaceholderSupport;
+import me.cookie.duel.player.PlayerProfileService;
 import me.cookie.duel.scheduler.PaperSchedulerFacade;
 import me.cookie.duel.scheduler.SchedulerFacade;
 import org.bukkit.Bukkit;
@@ -48,6 +53,10 @@ public final class CookieDuelPlugin extends JavaPlugin {
 
         this.schedulerFacade = new PaperSchedulerFacade(this);
         MessageService messageService = new MessageService(configService);
+        PlaceholderSupport placeholderSupport = getServer().getPluginManager().isPluginEnabled("PlaceholderAPI")
+                ? new PapiPlaceholderSupport()
+                : new NoopPlaceholderSupport();
+        PlayerProfileService playerProfileService = new PlayerProfileService(placeholderSupport, messageService);
         PlayerQueueRegistry playerQueueRegistry = new PlayerQueueRegistry();
         DuelSessionManager duelSessionManager = new DuelSessionManager();
         AntiAbuseService antiAbuseService = new AntiAbuseService(configService);
@@ -85,17 +94,21 @@ public final class CookieDuelPlugin extends JavaPlugin {
                 wildLocationService,
                 instanceProvisionService,
                 instanceCleanupService,
+                playerProfileService,
                 getLogger()
         );
-        QueueGuiService queueGuiService = new QueueGuiService(duelLifecycleService, messageService, schedulerFacade);
+        QueueGuiService queueGuiService = new QueueGuiService(duelLifecycleService, messageService, playerProfileService, schedulerFacade);
 
         registerCommand(new CookieDuelCommand(configService, duelLifecycleService, queueGuiService, messageService, schedulerFacade));
         getServer().getPluginManager().registerEvents(new PlayerLifecycleListener(duelLifecycleService), this);
         getServer().getPluginManager().registerEvents(new DuelCombatListener(duelSessionManager, duelLifecycleService), this);
         getServer().getPluginManager().registerEvents(new InstanceProtectionListener(duelLifecycleService), this);
         getServer().getPluginManager().registerEvents(new QueueGuiListener(queueGuiService), this);
+        if (placeholderSupport.isAvailable()) {
+            new CookieDuelPlaceholderExpansion(this, duelLifecycleService).register();
+        }
 
-        if (configService.mainConfig().modes().arenaInstance().cleanupLeftoversOnStartup()) {
+        if (configService.mainConfig().modes().arena().cleanupLeftoversOnStartup()) {
             duelLifecycleService.cleanupLeftoverInstances().whenComplete((count, throwable) -> {
                 if (throwable != null) {
                     getLogger().log(Level.WARNING, "Could not clean up leftover duel worlds on startup.", throwable);
@@ -131,7 +144,7 @@ public final class CookieDuelPlugin extends JavaPlugin {
                 : "Paper scheduler mode";
         getLogger().info("Scheduler: " + schedulerMode);
         getLogger().info("WILD mode: " + (configService.mainConfig().modes().wildEnabled() ? "enabled" : "disabled"));
-        getLogger().info("ARENA_INSTANCE mode: " + (configService.mainConfig().modes().arenaInstance().enabled() ? "enabled" : "disabled"));
+        getLogger().info("ARENA mode: " + (configService.mainConfig().modes().arena().enabled() ? "enabled" : "disabled"));
         getLogger().info("WILD world: " + configService.worldsConfig().wild().world()
                 + " (must already be loaded, search origin = world spawn)");
         getLogger().info("WILD world loaded: " + (Bukkit.getWorld(configService.worldsConfig().wild().world()) != null));
@@ -145,9 +158,10 @@ public final class CookieDuelPlugin extends JavaPlugin {
             getLogger().warning("blacklist.yml has invalid entries. See earlier warnings for the exact paths.");
         }
         getLogger().info("Arena cleanup on startup: "
-                + configService.mainConfig().modes().arenaInstance().cleanupLeftoversOnStartup());
+                + configService.mainConfig().modes().arena().cleanupLeftoversOnStartup());
         getLogger().info("Arena templates are checked in the server world container.");
         getLogger().info("Queues are player-created in game with /cd queue <mode> and use the owner's player name as the queue id.");
+        getLogger().info("PlaceholderAPI support: " + (getServer().getPluginManager().isPluginEnabled("PlaceholderAPI") ? "enabled" : "not installed"));
         getLogger().info("Default arena template: " + configService.worldsConfig().defaultArenaTemplateId());
         getLogger().info("Arena templates loaded: " + configService.worldsConfig().arenaTemplates().size());
     }

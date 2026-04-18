@@ -23,14 +23,14 @@ public final class ConfigurationValidator {
         }
 
         Path worldContainer = Bukkit.getWorldContainer().toPath();
-        if (mainConfig.modes().arenaInstance().enabled()) {
+        if (mainConfig.modes().arena().enabled()) {
             if (worldsConfig.arenaTemplates().isEmpty()) {
-                throw new ConfigurationException("ARENA_INSTANCE is enabled, but no arena templates are configured.");
+                throw new ConfigurationException("ARENA is enabled, but no arena templates are configured.");
             }
 
             String defaultTemplateId = worldsConfig.defaultArenaTemplateId();
             if (defaultTemplateId == null || defaultTemplateId.isBlank()) {
-                throw new ConfigurationException("ARENA_INSTANCE needs a default template id in worlds.yml.");
+                throw new ConfigurationException("ARENA needs a default template id in worlds.yml.");
             }
 
             var defaultTemplate = worldsConfig.arenaTemplates().get(defaultTemplateId);

@@ -12,7 +12,7 @@ public final class PlayerQueueEntry {
     private final UUID ownerId;
     private final String ownerName;
     private final DuelModeType mode;
-    private final long money;
+    private final String money;
     private final Instant createdAt;
     private volatile boolean active;
 
@@ -20,13 +20,13 @@ public final class PlayerQueueEntry {
                             UUID ownerId,
                             String ownerName,
                             DuelModeType mode,
-                            long money,
+                            String money,
                             Instant createdAt) {
         this.id = Objects.requireNonNull(id, "id");
         this.ownerId = Objects.requireNonNull(ownerId, "ownerId");
         this.ownerName = Objects.requireNonNull(ownerName, "ownerName");
         this.mode = Objects.requireNonNull(mode, "mode");
-        this.money = money;
+        this.money = Objects.requireNonNull(money, "money");
         this.createdAt = Objects.requireNonNull(createdAt, "createdAt");
         this.active = true;
     }
@@ -47,7 +47,7 @@ public final class PlayerQueueEntry {
         return mode;
     }
 
-    public long money() {
+    public String money() {
         return money;
     }
 

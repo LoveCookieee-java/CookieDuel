@@ -20,10 +20,8 @@ public final class QueuesConfigLoader {
 
         for (String queueId : queuesSection.getKeys(false)) {
             ConfigurationSection section = MainConfigLoader.requireSection(queuesSection, queueId);
-            DuelModeType mode;
-            try {
-                mode = DuelModeType.valueOf(MainConfigLoader.requireString(section, "mode").toUpperCase());
-            } catch (IllegalArgumentException exception) {
+            DuelModeType mode = DuelModeType.fromInput(MainConfigLoader.requireString(section, "mode"));
+            if (mode == null) {
                 throw new ConfigurationException("Invalid queue mode for queue '" + queueId + "'");
             }
 

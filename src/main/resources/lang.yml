@@ -1,11 +1,15 @@
 # Main language file.
-# Keep placeholders like {queue}, {id}, {owner}, {mode}, {player}, {opponent}, {seconds}, {reason}, and {count}.
+# Keep placeholders like {queue}, {id}, {owner}, {mode}, {money}, {player}, {kills}, {deaths}, {points}, {opponent}, {seconds}, {reason}, and {count}.
 
 prefix: "&6CookieDuel &8» &r"
 
 general:
   player-only: "&cOnly players can use that command."
-  invalid-mode: "&cInvalid mode. Use &fWILD &cor &fARENA_INSTANCE&c."
+  invalid-mode: "&cInvalid mode. Use &fWILD &cor &fARENA&c."
+
+modes:
+  wild: "WILD"
+  arena: "ARENA"
 
 queue:
   create-usage: "&eUse &f/cd queue <mode> &eto open a queue under your player name."
@@ -40,7 +44,7 @@ duel:
   cancelled: "&cDuel cancelled: {reason}"
   no-session: "&cYou're not in a duel right now."
   no-safe-spawn: "&cCouldn't find a safe Wild spawn."
-  provision-failed: "&cCouldn't prepare the arena instance."
+  provision-failed: "&cCouldn't prepare the arena."
   teleport-failed: "&cCouldn't start the duel because teleporting failed."
   arena-title-win-title: "&aVictory"
   arena-title-win-subtitle: "&fYou beat {opponent}"
@@ -59,18 +63,22 @@ admin:
 
 gui:
   queue-browser:
-    title: "&8Queue Browser"
-    empty-name: "&7No active queues"
-    empty-lore:
-      - "&8No one has opened a queue yet."
-      - "&8Use /cd queue <mode> to create one."
+    title: "&8CookieDuel Queues"
     entry-name: "&e{owner}"
     entry-lore:
-      - "&7Owner: &f{owner}"
+      - "&7Player: &f{owner}"
       - "&7Mode: &f{mode}"
-      - "&7Money: &f${money}"
+      - "&7Money: &f{money}"
       - ""
       - "&eClick to join this queue."
+    profile-name: "&6Your Profile"
+    profile-lore:
+      - "&7Player: &f{player}"
+      - "&7Money: &f{money}"
+      - "&7Kills: &f{kills}"
+      - "&7Deaths: &f{deaths}"
+      - "&7Points: &f{points}"
+    stat-fallback: "N/A"
     previous-name: "&ePrevious page"
     previous-lore:
       - "&7Go to the previous page."

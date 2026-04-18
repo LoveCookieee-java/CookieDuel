@@ -1,7 +1,7 @@
 # CookieDuel
 
 CookieDuel is a Paper duel plugin built around short-lived duel sessions instead of loose command state.
-It supports exactly two modes: `WILD` and `ARENA_INSTANCE`.
+It supports exactly two modes: `WILD` and `ARENA`.
 
 ## Supported versions
 
@@ -24,26 +24,26 @@ It supports exactly two modes: `WILD` and `ARENA_INSTANCE`.
 
 Wild duels use one configured world from `worlds.yml`. CookieDuel searches around that world's spawn, finds one safe center, and places both players on opposite sides of it with roughly equal terrain conditions.
 
-### ARENA_INSTANCE
+### ARENA
 
 Arena duels clone a configured template world when the duel starts, teleport both players into the temporary instance, then unload and delete it when the duel ends.
 
 ## Commands
 
 - `/cd queue <mode>` - create a queue entry tied to your player name
-- `/cookieduel list` - open the queue browser GUI
-- `/cookieduel random` - join a random queue you can legally enter
-- `/cookieduel leave`
-- `/cookieduel surrender`
-- `/cookieduel admin reload`
-- `/cookieduel admin forcestop <player>`
-- `/cookieduel admin cleanupinstances`
+- `/cd list` - open the queue browser GUI
+- `/cd random` - join a random queue you can legally enter
+- `/cd leave`
+- `/cd surrender`
+- `/cd admin reload`
+- `/cd admin forcestop <player>`
+- `/cd admin cleanupinstances`
 - Alias: `/cd`
 
 Modes for queue creation:
 
 - `WILD`
-- `ARENA_INSTANCE`
+- `ARENA`
 
 Queue identity rules:
 
@@ -52,7 +52,9 @@ Queue identity rules:
 
 ## Dependencies
 
-No external plugin dependencies required.
+No hard plugin dependencies are required.
+`PlaceholderAPI` is optional and enables profile-head point display plus the `%CD_WILD%` and `%CD_ARENA%` placeholders.
+If `PlayerPoints` is installed alongside `PlaceholderAPI`, the queue GUI profile card can show PlayerPoints through PlaceholderAPI.
 
 ## Setup
 
@@ -74,8 +76,9 @@ No external plugin dependencies required.
 
 - Queue entries are created by players in game; they are not a static list from config.
 - `/cd queue <mode>` creates a queue under the player's own name automatically.
-- `/cd list` opens the live queue browser and supports paging plus manual refresh.
+- `/cd list` opens the live queue browser, shows a viewer profile head, and supports paging plus manual refresh.
 - `/cd random` picks one valid queue entry at random, then uses the normal join flow.
+- `%CD_WILD%` and `%CD_ARENA%` return the live number of active queue rooms for each mode when PlaceholderAPI is installed.
 - Wild search uses the configured world's spawn as the search origin.
 - The Wild world must already be loaded. CookieDuel does not auto-load it.
 - Arena templates must already exist and be valid on disk.

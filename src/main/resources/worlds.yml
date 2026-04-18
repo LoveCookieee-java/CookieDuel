@@ -1,6 +1,6 @@
 # CookieDuel world settings.
 # Wild mode searches around a loaded world's spawn.
-# Arena instance mode clones a template world for each arena duel.
+# Arena mode clones a template world for each arena duel.
 
 wild:
   # This world must already be loaded before CookieDuel starts.
@@ -45,7 +45,7 @@ wild:
     nearby-hazard-check-radius: 2
     nearby-obstruction-check-radius: 1
 
-arena-instance:
+arena:
   # Player-created arena queues use this template unless you change the code to select another one.
   default-template: "default"
 

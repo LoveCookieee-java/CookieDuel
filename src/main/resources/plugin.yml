@@ -3,6 +3,7 @@ version: ${version}
 main: me.cookie.duel.CookieDuelPlugin
 api-version: "1.21"
 author: Cookie
+softdepend: [PlaceholderAPI]
 commands:
   cookieduel:
     description: Main CookieDuel command
