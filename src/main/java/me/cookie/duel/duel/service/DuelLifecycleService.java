@@ -73,17 +73,17 @@ public final class DuelLifecycleService {
         this.logger = logger;
     }
 
-    public void createQueueEntry(Player player, String queueId, DuelModeType mode) {
+    public void createQueueEntry(Player player, DuelModeType mode) {
         schedulerFacade.runSync(() -> {
             MatchmakingService.CreateQueueResult result = matchmakingService.createQueue(
                     player.getUniqueId(),
                     player.getName(),
-                    queueId,
                     mode
             );
             switch (result.status()) {
                 case CREATED -> sendToPlayer(player, "queue.created", Map.of(
                         "id", result.entry().id(),
+                        "owner", result.entry().ownerName(),
                         "mode", result.entry().mode().name()
                 ));
                 case INVALID_ID -> sendToPlayer(player, "queue.create-usage", Map.of());
@@ -121,7 +121,6 @@ public final class DuelLifecycleService {
 
             PlayerQueueEntry selected = candidates.get(ThreadLocalRandom.current().nextInt(candidates.size()));
             sendToPlayer(player, "queue.random-joining", Map.of(
-                    "id", selected.id(),
                     "owner", selected.ownerName(),
                     "mode", selected.mode().name()
             ));
@@ -228,7 +227,11 @@ public final class DuelLifecycleService {
         MatchmakingService.JoinQueueResult result = matchmakingService.joinQueue(player.getUniqueId(), queueId);
         switch (result.status()) {
             case MATCH_FOUND -> {
-                sendToPlayer(player, "queue.join-started", Map.of("id", result.entry().id()));
+                sendToPlayer(player, "queue.join-started", Map.of(
+                        "id", result.entry().id(),
+                        "owner", result.entry().ownerName(),
+                        "mode", result.entry().mode().name()
+                ));
                 handleMatchFound(result.sessionContext());
             }
             case NOT_FOUND -> sendToPlayer(player, "queue.not-found", Map.of("id", queueId));

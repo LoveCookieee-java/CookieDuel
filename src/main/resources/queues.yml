@@ -1,4 +1,5 @@
-# Queue entries are now created in game with /cd queue <id> <mode>.
+# Queue entries are now created in game with /cd queue <mode>.
+# The queue identity automatically uses the owner's player name.
 # This file is kept for future queue-related settings or presets.
 # It does not define the live queue list anymore.
 

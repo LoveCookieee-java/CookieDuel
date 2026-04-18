@@ -147,7 +147,7 @@ public final class CookieDuelPlugin extends JavaPlugin {
         getLogger().info("Arena cleanup on startup: "
                 + configService.mainConfig().modes().arenaInstance().cleanupLeftoversOnStartup());
         getLogger().info("Arena templates are checked in the server world container.");
-        getLogger().info("Queues are player-created in game with /cd queue <id> <mode>.");
+        getLogger().info("Queues are player-created in game with /cd queue <mode> and use the owner's player name as the queue id.");
         getLogger().info("Default arena template: " + configService.worldsConfig().defaultArenaTemplateId());
         getLogger().info("Arena templates loaded: " + configService.worldsConfig().arenaTemplates().size());
     }

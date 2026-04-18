@@ -78,18 +78,18 @@ public final class CookieDuelCommand implements CommandExecutor, TabCompleter {
     }
 
     private boolean handleQueue(Player player, String[] args) {
-        if (args.length < 3) {
+        if (args.length != 2) {
             messageService.send(player, "queue.create-usage");
             return true;
         }
 
-        DuelModeType mode = parseMode(args[2]);
+        DuelModeType mode = parseMode(args[1]);
         if (mode == null) {
             messageService.send(player, "general.invalid-mode");
             return true;
         }
 
-        duelLifecycleService.createQueueEntry(player, args[1], mode);
+        duelLifecycleService.createQueueEntry(player, mode);
         return true;
     }
 
@@ -169,13 +169,9 @@ public final class CookieDuelCommand implements CommandExecutor, TabCompleter {
         }
 
         if (args.length == 2 && "queue".equalsIgnoreCase(args[0])) {
-            return filter(suggestions, args[1]);
-        }
-
-        if (args.length == 3 && "queue".equalsIgnoreCase(args[0])) {
             suggestions.add("WILD");
             suggestions.add("ARENA_INSTANCE");
-            return filter(suggestions, args[2]);
+            return filter(suggestions, args[1]);
         }
 
         if (sender.hasPermission("cookieduel.admin") && args.length == 2 && "admin".equalsIgnoreCase(args[0])) {
@@ -211,15 +207,15 @@ public final class CookieDuelCommand implements CommandExecutor, TabCompleter {
     }
 
     private void sendHelp(CommandSender sender) {
-        sender.sendMessage("/cookieduel queue <id> <mode>");
-        sender.sendMessage("/cookieduel list");
-        sender.sendMessage("/cookieduel random");
-        sender.sendMessage("/cookieduel leave");
-        sender.sendMessage("/cookieduel surrender");
-        sender.sendMessage("/cookieduel admin reload");
-        sender.sendMessage("/cookieduel admin forcestop <player>");
-        sender.sendMessage("/cookieduel admin cleanupinstances");
-        sender.sendMessage("Use /cookieduel queue <id> <mode> to open a queue, then /cookieduel list to browse active entries.");
+        sender.sendMessage("/cd queue <mode>");
+        sender.sendMessage("/cd list");
+        sender.sendMessage("/cd random");
+        sender.sendMessage("/cd leave");
+        sender.sendMessage("/cd surrender");
+        sender.sendMessage("/cd admin reload");
+        sender.sendMessage("/cd admin forcestop <player>");
+        sender.sendMessage("/cd admin cleanupinstances");
+        sender.sendMessage("Use /cd queue <mode> to open a queue under your player name, then /cd list to browse active entries.");
     }
 
     private DuelModeType parseMode(String raw) {

@@ -30,7 +30,6 @@ public final class QueueGuiService {
             37, 38, 39, 40, 41, 42, 43
     );
     private static final int GUI_SIZE = 54;
-    private static final int EMPTY_SLOT = 22;
 
     private final DuelLifecycleService duelLifecycleService;
     private final MessageService messageService;
@@ -90,11 +89,6 @@ public final class QueueGuiService {
         fillBorder(inventory);
         addControls(inventory);
 
-        if (entries.isEmpty()) {
-            inventory.setItem(EMPTY_SLOT, createEmptyStateItem());
-            return inventory;
-        }
-
         int contentIndex = 0;
         for (int entryIndex = startIndex; entryIndex < endIndex; entryIndex++) {
             PlayerQueueEntry entry = entries.get(entryIndex);
@@ -149,14 +143,6 @@ public final class QueueGuiService {
         );
     }
 
-    private ItemStack createEmptyStateItem() {
-        return createSimpleItem(
-                Material.PAPER,
-                messageService.renderRaw("gui.queue-browser.empty-name", Map.of()),
-                messageService.renderRawList("gui.queue-browser.empty-lore", Map.of())
-        );
-    }
-
     private ItemStack createQueueItem(PlayerQueueEntry entry) {
         ItemStack item = new ItemStack(Material.PLAYER_HEAD);
         SkullMeta meta = (SkullMeta) item.getItemMeta();
@@ -166,12 +152,11 @@ public final class QueueGuiService {
 
         OfflinePlayer offlinePlayer = Bukkit.getOfflinePlayer(entry.ownerId());
         meta.setOwningPlayer(offlinePlayer);
-        meta.setDisplayName(messageService.renderRaw("gui.queue-browser.entry-name", Map.of("id", entry.id())));
+        meta.setDisplayName(messageService.renderRaw("gui.queue-browser.entry-name", Map.of("owner", entry.ownerName())));
         meta.setLore(messageService.renderRawList("gui.queue-browser.entry-lore", Map.of(
-                "id", entry.id(),
                 "owner", entry.ownerName(),
                 "mode", entry.mode().name(),
-                "money", "$" + entry.money()
+                "money", String.valueOf(entry.money())
         )));
         meta.addItemFlags(ItemFlag.HIDE_ATTRIBUTES);
         item.setItemMeta(meta);

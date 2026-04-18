@@ -30,7 +30,7 @@ Arena duels clone a configured template world when the duel starts, teleport bot
 
 ## Commands
 
-- `/cookieduel queue <id> <mode>` - create a queue entry you own
+- `/cd queue <mode>` - create a queue entry tied to your player name
 - `/cookieduel list` - open the queue browser GUI
 - `/cookieduel random` - join a random queue you can legally enter
 - `/cookieduel leave`
@@ -44,6 +44,11 @@ Modes for queue creation:
 
 - `WILD`
 - `ARENA_INSTANCE`
+
+Queue identity rules:
+
+- Queue ids are automatic and always use the owner player's name
+- Players do not enter a custom queue id anymore
 
 ## Dependencies
 
@@ -68,6 +73,7 @@ No external plugin dependencies required.
 ## Notes
 
 - Queue entries are created by players in game; they are not a static list from config.
+- `/cd queue <mode>` creates a queue under the player's own name automatically.
 - `/cd list` opens the live queue browser and supports paging plus manual refresh.
 - `/cd random` picks one valid queue entry at random, then uses the normal join flow.
 - Wild search uses the configured world's spawn as the search origin.

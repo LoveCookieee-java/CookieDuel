@@ -32,19 +32,26 @@ public final class MatchmakingService {
         this.antiAbuseService = antiAbuseService;
     }
 
-    public CreateQueueResult createQueue(UUID ownerId, String ownerName, String queueId, DuelModeType mode) {
-        String trimmedId = queueId == null ? "" : queueId.trim();
-        if (trimmedId.isEmpty()) {
+    public CreateQueueResult createQueue(UUID ownerId, String ownerName, DuelModeType mode) {
+        String entryId = ownerName == null ? "" : ownerName.trim();
+        if (entryId.isEmpty()) {
             return new CreateQueueResult(CreateQueueStatus.INVALID_ID, null, 0L);
         }
         if (!isModeEnabled(mode)) {
             return new CreateQueueResult(CreateQueueStatus.MODE_DISABLED, null, 0L);
         }
-        if (playerQueueRegistry.hasId(trimmedId)) {
-            return new CreateQueueResult(CreateQueueStatus.DUPLICATE_ID, null, 0L);
-        }
         if (playerQueueRegistry.hasOwner(ownerId)) {
             return new CreateQueueResult(CreateQueueStatus.ALREADY_OWN_QUEUE, null, 0L);
+        }
+        PlayerQueueEntry existingEntry = playerQueueRegistry.byId(entryId).orElse(null);
+        if (existingEntry != null) {
+            return new CreateQueueResult(
+                    existingEntry.ownerId().equals(ownerId)
+                            ? CreateQueueStatus.ALREADY_OWN_QUEUE
+                            : CreateQueueStatus.DUPLICATE_ID,
+                    null,
+                    0L
+            );
         }
         if (duelSessionManager.isInSession(ownerId)) {
             return new CreateQueueResult(CreateQueueStatus.IN_SESSION, null, 0L);
@@ -62,7 +69,7 @@ public final class MatchmakingService {
         }
 
         PlayerQueueEntry entry = new PlayerQueueEntry(
-                trimmedId,
+                entryId,
                 ownerId,
                 ownerName,
                 mode,
@@ -70,7 +77,13 @@ public final class MatchmakingService {
                 Instant.now()
         );
         if (!playerQueueRegistry.add(entry)) {
-            return new CreateQueueResult(CreateQueueStatus.DUPLICATE_ID, null, 0L);
+            return new CreateQueueResult(
+                    playerQueueRegistry.hasOwner(ownerId)
+                            ? CreateQueueStatus.ALREADY_OWN_QUEUE
+                            : CreateQueueStatus.DUPLICATE_ID,
+                    null,
+                    0L
+            );
         }
 
         antiAbuseService.recordQueueJoin(ownerId);
