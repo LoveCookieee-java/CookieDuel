@@ -4,7 +4,6 @@ public enum DuelSessionState {
     IDLE,
     QUEUED,
     MATCH_FOUND,
-    CONFIRMING,
     PROVISIONING,
     TELEPORTING,
     FIGHTING,

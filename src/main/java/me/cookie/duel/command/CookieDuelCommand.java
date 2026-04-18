@@ -69,14 +69,6 @@ public final class CookieDuelCommand implements CommandExecutor, TabCompleter {
                 duelLifecycleService.leaveQueue(player);
                 yield true;
             }
-            case "accept" -> {
-                duelLifecycleService.accept(player);
-                yield true;
-            }
-            case "deny" -> {
-                duelLifecycleService.deny(player);
-                yield true;
-            }
             case "surrender" -> {
                 duelLifecycleService.surrender(player);
                 yield true;
@@ -169,8 +161,6 @@ public final class CookieDuelCommand implements CommandExecutor, TabCompleter {
             suggestions.add("list");
             suggestions.add("random");
             suggestions.add("leave");
-            suggestions.add("accept");
-            suggestions.add("deny");
             suggestions.add("surrender");
             if (sender.hasPermission("cookieduel.admin")) {
                 suggestions.add("admin");
@@ -225,8 +215,6 @@ public final class CookieDuelCommand implements CommandExecutor, TabCompleter {
         sender.sendMessage("/cookieduel list");
         sender.sendMessage("/cookieduel random");
         sender.sendMessage("/cookieduel leave");
-        sender.sendMessage("/cookieduel accept");
-        sender.sendMessage("/cookieduel deny");
         sender.sendMessage("/cookieduel surrender");
         sender.sendMessage("/cookieduel admin reload");
         sender.sendMessage("/cookieduel admin forcestop <player>");

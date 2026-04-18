@@ -32,7 +32,6 @@ public final class QueuesConfigLoader {
                     section.getBoolean("enabled"),
                     MainConfigLoader.requireString(section, "display-name"),
                     mode,
-                    section.getBoolean("confirm-required"),
                     section.getString("template")
             );
             queues.put(queueId, definition);

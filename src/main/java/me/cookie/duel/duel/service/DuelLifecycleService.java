@@ -2,7 +2,6 @@ package me.cookie.duel.duel.service;
 
 import me.cookie.duel.config.ConfigService;
 import me.cookie.duel.config.model.ArenaTemplateDefinition;
-import me.cookie.duel.config.model.LobbySettings;
 import me.cookie.duel.config.model.WildLocationSettings;
 import me.cookie.duel.duel.DuelModeType;
 import me.cookie.duel.duel.instance.InstanceCleanupService;
@@ -40,7 +39,6 @@ public final class DuelLifecycleService {
     private final SchedulerFacade schedulerFacade;
     private final DuelSessionManager duelSessionManager;
     private final MatchmakingService matchmakingService;
-    private final ConfirmService confirmService;
     private final TeleportCoordinator teleportCoordinator;
     private final SnapshotService snapshotService;
     private final AntiAbuseService antiAbuseService;
@@ -54,7 +52,6 @@ public final class DuelLifecycleService {
                                 SchedulerFacade schedulerFacade,
                                 DuelSessionManager duelSessionManager,
                                 MatchmakingService matchmakingService,
-                                ConfirmService confirmService,
                                 TeleportCoordinator teleportCoordinator,
                                 SnapshotService snapshotService,
                                 AntiAbuseService antiAbuseService,
@@ -67,7 +64,6 @@ public final class DuelLifecycleService {
         this.schedulerFacade = schedulerFacade;
         this.duelSessionManager = duelSessionManager;
         this.matchmakingService = matchmakingService;
-        this.confirmService = confirmService;
         this.teleportCoordinator = teleportCoordinator;
         this.snapshotService = snapshotService;
         this.antiAbuseService = antiAbuseService;
@@ -143,44 +139,6 @@ public final class DuelLifecycleService {
         });
     }
 
-    public void accept(Player player) {
-        schedulerFacade.runSync(() -> {
-            DuelSessionContext context = duelSessionManager.byPlayer(player.getUniqueId()).orElse(null);
-            if (context == null || context.session().state() != DuelSessionState.CONFIRMING) {
-                sendToPlayer(player, "confirm.not-pending", Map.of());
-                return;
-            }
-
-            ConfirmService.ConfirmationResult result = confirmService.accept(context.session(), player.getUniqueId());
-            switch (result) {
-                case NOT_TRACKING -> sendToPlayer(player, "confirm.not-pending", Map.of());
-                case ALREADY_ACCEPTED -> sendToPlayer(player, "confirm.accepted-self", Map.of());
-                case ACCEPTED -> {
-                    sendToPlayer(player, "confirm.accepted-self", Map.of());
-                    sendToPlayer(context.session().opponentOf(player.getUniqueId()), "confirm.accepted-other", Map.of("player", player.getName()));
-                }
-                case BOTH_ACCEPTED -> {
-                    sendToPlayer(player, "confirm.accepted-self", Map.of());
-                    sendToPlayer(context.session().opponentOf(player.getUniqueId()), "confirm.accepted-other", Map.of("player", player.getName()));
-                    beginProvisioning(context);
-                }
-            }
-        });
-    }
-
-    public void deny(Player player) {
-        schedulerFacade.runSync(() -> {
-            DuelSessionContext context = duelSessionManager.byPlayer(player.getUniqueId()).orElse(null);
-            if (context == null || context.session().state() != DuelSessionState.CONFIRMING) {
-                sendToPlayer(player, "confirm.not-pending", Map.of());
-                return;
-            }
-
-            sendToParticipants(context, "confirm.denied", Map.of());
-            cancelSession(context.session(), "declined");
-        });
-    }
-
     public void surrender(Player player) {
         schedulerFacade.runSync(() -> {
             DuelSessionContext context = duelSessionManager.byPlayer(player.getUniqueId()).orElse(null);
@@ -240,8 +198,8 @@ public final class DuelLifecycleService {
         return instanceCleanupService.cleanupLeftoverInstances();
     }
 
-    public void applyPendingRestore(Player player) {
-        snapshotService.applyPendingRestore(player);
+    public void applyPendingReturn(Player player) {
+        snapshotService.applyPendingReturn(player);
     }
 
     public void shutdown() {
@@ -260,17 +218,6 @@ public final class DuelLifecycleService {
         Player second = Bukkit.getPlayer(context.session().secondPlayer());
         if (first == null || second == null) {
             cancelSession(context.session(), "player went offline");
-            return;
-        }
-
-        if (context.session().confirmRequired()) {
-            if (!context.session().transition(DuelSessionState.MATCH_FOUND, DuelSessionState.CONFIRMING)) {
-                return;
-            }
-            sendToPlayer(first, "confirm.found", Map.of("opponent", second.getName()));
-            sendToPlayer(second, "confirm.found", Map.of("opponent", first.getName()));
-            long timeoutTicks = configService.mainConfig().duel().confirmTimeoutSeconds() * 20L;
-            confirmService.start(context.session(), timeoutTicks, () -> cancelSession(context.session(), "accept timeout"));
             return;
         }
 
@@ -299,7 +246,7 @@ public final class DuelLifecycleService {
 
     private void beginProvisioning(DuelSessionContext context) {
         DuelSession session = context.session();
-        if (!session.transitionAny(Set.of(DuelSessionState.CONFIRMING, DuelSessionState.MATCH_FOUND), DuelSessionState.PROVISIONING)) {
+        if (!session.transition(DuelSessionState.MATCH_FOUND, DuelSessionState.PROVISIONING)) {
             return;
         }
 
@@ -317,7 +264,7 @@ public final class DuelLifecycleService {
                 .whenComplete((ignored, throwable) -> schedulerFacade.runSync(() -> {
                     if (throwable != null) {
                         logger.log(Level.WARNING,
-                                "Could not capture player snapshots for session " + session.sessionId() + ".",
+                                "Could not capture player return locations for session " + session.sessionId() + ".",
                                 throwable);
                         cancelSession(session, "setup failed");
                         return;
@@ -413,7 +360,7 @@ public final class DuelLifecycleService {
         }
 
         sendToParticipants(context, "duel.teleporting", Map.of());
-        Location firstFallback = resolveDestination(context.firstSnapshot());
+        Location firstFallback = context.firstSnapshot() == null ? null : context.firstSnapshot().returnLocation();
 
         teleportCoordinator.teleportBoth(
                         first,
@@ -489,7 +436,6 @@ public final class DuelLifecycleService {
         }
 
         context.cancelTasks();
-        confirmService.clear(session.sessionId());
 
         Player winner = Bukkit.getPlayer(winnerId);
         Player loser = Bukkit.getPlayer(session.opponentOf(winnerId));
@@ -520,7 +466,6 @@ public final class DuelLifecycleService {
         boolean transitioned = session.transitionAny(
                 Set.of(
                         DuelSessionState.MATCH_FOUND,
-                        DuelSessionState.CONFIRMING,
                         DuelSessionState.PROVISIONING,
                         DuelSessionState.TELEPORTING,
                         DuelSessionState.FIGHTING
@@ -538,7 +483,6 @@ public final class DuelLifecycleService {
                 + ": "
                 + reason);
         context.cancelTasks();
-        confirmService.clear(session.sessionId());
         sendToParticipants(context, "duel.cancelled", Map.of("reason", reason));
         cleanupSession(context);
     }
@@ -550,18 +494,19 @@ public final class DuelLifecycleService {
         }
 
         session.transitionAny(
-                Set.of(DuelSessionState.ENDING, DuelSessionState.CANCELLED, DuelSessionState.PROVISIONING, DuelSessionState.TELEPORTING, DuelSessionState.CONFIRMING, DuelSessionState.MATCH_FOUND),
+                Set.of(DuelSessionState.ENDING, DuelSessionState.CANCELLED, DuelSessionState.PROVISIONING, DuelSessionState.TELEPORTING, DuelSessionState.MATCH_FOUND),
                 DuelSessionState.CLEANUP
         );
 
-        Location firstDestination = resolveDestination(context.firstSnapshot());
-        Location secondDestination = resolveDestination(context.secondSnapshot());
-        boolean restoreInventory = configService.mainConfig().duel().restoreInventoryAfterDuel();
+        boolean returnPlayersAfterDuel = context.instanceWorldName() != null;
+        CompletableFuture<Void> firstReturn = returnPlayersAfterDuel
+                ? snapshotService.returnOrQueue(session.firstPlayer(), context.firstSnapshot(), null)
+                : CompletableFuture.completedFuture(null);
+        CompletableFuture<Void> secondReturn = returnPlayersAfterDuel
+                ? snapshotService.returnOrQueue(session.secondPlayer(), context.secondSnapshot(), null)
+                : CompletableFuture.completedFuture(null);
 
-        CompletableFuture<Void> firstRestore = snapshotService.restoreOrQueue(session.firstPlayer(), context.firstSnapshot(), firstDestination, restoreInventory);
-        CompletableFuture<Void> secondRestore = snapshotService.restoreOrQueue(session.secondPlayer(), context.secondSnapshot(), secondDestination, restoreInventory);
-
-        CompletableFuture.allOf(firstRestore, secondRestore)
+        CompletableFuture.allOf(firstReturn, secondReturn)
                 .exceptionally(throwable -> null)
                 .thenCompose(ignored -> {
                     if (context.instanceWorldName() == null) {
@@ -579,24 +524,6 @@ public final class DuelLifecycleService {
                     antiAbuseService.recordSessionEnd(session.firstPlayer(), session.secondPlayer());
                     duelSessionManager.remove(session);
                 });
-    }
-
-    private Location resolveDestination(PlayerSnapshot snapshot) {
-        if (snapshot == null) {
-            return null;
-        }
-
-        if (!configService.mainConfig().duel().teleportBackToLobbyAfterDuel()) {
-            return snapshot.returnLocation();
-        }
-
-        LobbySettings lobbySettings = configService.mainConfig().lobby();
-        if (!lobbySettings.enabled()) {
-            return snapshot.returnLocation();
-        }
-
-        Location lobbyLocation = lobbySettings.toLocation();
-        return lobbyLocation == null ? snapshot.returnLocation() : lobbyLocation;
     }
 
     private void sendToParticipants(DuelSessionContext context, String path, Map<String, String> placeholders) {

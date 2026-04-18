@@ -3,7 +3,6 @@ package me.cookie.duel.config;
 import me.cookie.duel.config.model.AntiAbuseSettings;
 import me.cookie.duel.config.model.ArenaModeSettings;
 import me.cookie.duel.config.model.DuelSettings;
-import me.cookie.duel.config.model.LobbySettings;
 import me.cookie.duel.config.model.MainConfig;
 import me.cookie.duel.config.model.ModeSettings;
 import org.bukkit.configuration.ConfigurationSection;
@@ -13,22 +12,11 @@ public final class MainConfigLoader {
 
     public MainConfig load(FileConfiguration config) {
         ConfigurationSection generalSection = requireSection(config, "general");
-        ConfigurationSection lobbySection = requireSection(config, "lobby");
         ConfigurationSection modesSection = requireSection(config, "modes");
         ConfigurationSection wildModeSection = requireSection(modesSection, "wild");
         ConfigurationSection arenaModeSection = requireSection(modesSection, "arena-instance");
         ConfigurationSection duelSection = requireSection(config, "duel");
         ConfigurationSection antiAbuseSection = requireSection(config, "anti-abuse");
-
-        LobbySettings lobbySettings = new LobbySettings(
-                lobbySection.getBoolean("enabled"),
-                requireString(lobbySection, "world"),
-                lobbySection.getDouble("x"),
-                lobbySection.getDouble("y"),
-                lobbySection.getDouble("z"),
-                (float) lobbySection.getDouble("yaw"),
-                (float) lobbySection.getDouble("pitch")
-        );
 
         ArenaModeSettings arenaModeSettings = new ArenaModeSettings(
                 arenaModeSection.getBoolean("enabled"),
@@ -44,11 +32,8 @@ public final class MainConfigLoader {
         );
 
         DuelSettings duelSettings = new DuelSettings(
-                duelSection.getInt("confirm-timeout-seconds"),
                 duelSection.getInt("prestart-countdown-seconds"),
-                duelSection.getInt("max-fight-seconds"),
-                duelSection.getBoolean("restore-inventory-after-duel"),
-                duelSection.getBoolean("teleport-back-to-lobby-after-duel")
+                duelSection.getInt("max-fight-seconds")
         );
 
         AntiAbuseSettings antiAbuseSettings = new AntiAbuseSettings(
@@ -59,7 +44,6 @@ public final class MainConfigLoader {
 
         return new MainConfig(
                 generalSection.getBoolean("debug"),
-                lobbySettings,
                 modeSettings,
                 duelSettings,
                 antiAbuseSettings

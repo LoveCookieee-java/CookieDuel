@@ -28,14 +28,6 @@ queue:
   random-joining: "&eJoining a random queue: &f{id} &7({owner} / {mode})"
   gui-refresh-cooldown: "&cWait &f{seconds}s &cbefore refreshing again."
 
-confirm:
-  found: "&6Match found: &f{opponent}&6. Use &a/cd accept &6or &c/cd deny&6."
-  accepted-self: "&aDuel accepted."
-  accepted-other: "&e{player} accepted the duel."
-  denied: "&cThe duel was declined."
-  timeout: "&cThe duel request timed out."
-  not-pending: "&cYou don't have a duel request waiting."
-
 duel:
   preparing: "&eSetting up the duel..."
   teleporting: "&eTeleporting players..."

@@ -15,7 +15,7 @@ It supports exactly two modes: `WILD` and `ARENA_INSTANCE`.
 - 54-slot queue browser GUI with pagination
 - Shared-center Wild spawns with blacklist and terrain checks
 - Per-duel arena world cloning and cleanup
-- Session-based confirm, provision, teleport, fight, and cleanup flow
+- Session-based prepare, provision, teleport, fight, and cleanup flow
 - Split config files and one central `lang.yml`
 
 ## Modes
@@ -26,7 +26,7 @@ Wild duels use one configured world from `worlds.yml`. CookieDuel searches aroun
 
 ### ARENA_INSTANCE
 
-Arena duels clone a configured template world after both players accept, teleport both players into the temporary instance, then unload and delete it when the duel ends.
+Arena duels clone a configured template world when the duel starts, teleport both players into the temporary instance, then unload and delete it when the duel ends.
 
 ## Commands
 
@@ -34,8 +34,6 @@ Arena duels clone a configured template world after both players accept, telepor
 - `/cookieduel list` - open the queue browser GUI
 - `/cookieduel random` - join a random queue you can legally enter
 - `/cookieduel leave`
-- `/cookieduel accept`
-- `/cookieduel deny`
 - `/cookieduel surrender`
 - `/cookieduel admin reload`
 - `/cookieduel admin forcestop <player>`
@@ -61,7 +59,7 @@ No external plugin dependencies required.
 
 ## Config files
 
-- `config.yml` - general duel, lobby, and anti-abuse settings
+- `config.yml` - general duel and anti-abuse settings
 - `worlds.yml` - Wild world settings and arena templates
 - `queues.yml` - reserved for queue-related settings; live queue entries are created in game
 - `blacklist.yml` - Wild spawn blacklist rules

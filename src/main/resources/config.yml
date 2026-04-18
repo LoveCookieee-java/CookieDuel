@@ -1,19 +1,9 @@
 # CookieDuel main settings.
 # Wild mode uses one loaded world and paired spawns.
-# Arena instance mode clones a template world after both players accept.
+# Arena instance mode clones a template world when a duel starts.
 
 general:
   debug: false
-
-# Used when duel.teleport-back-to-lobby-after-duel is enabled.
-lobby:
-  enabled: true
-  world: "world"
-  x: 0.5
-  y: 80.0
-  z: 0.5
-  yaw: 0.0
-  pitch: 0.0
 
 modes:
   wild:
@@ -30,17 +20,13 @@ modes:
     instance-delete-timeout-seconds: 15
 
 duel:
-  # Time both players have to accept after a match is found.
-  confirm-timeout-seconds: 10
   # Delay between successful teleports and the fight starting.
   prestart-countdown-seconds: 5
   # Hard time limit for a duel before it is cancelled.
   max-fight-seconds: 300
-  restore-inventory-after-duel: true
-  teleport-back-to-lobby-after-duel: true
 
 anti-abuse:
   # Small queue spam protections.
   queue-join-cooldown-seconds: 3
   queue-leave-penalty-seconds: 10
-  rematch-block-seconds: 180
+  rematch-block-seconds: 60

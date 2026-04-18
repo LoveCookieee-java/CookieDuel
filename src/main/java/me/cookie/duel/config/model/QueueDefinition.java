@@ -7,7 +7,6 @@ public record QueueDefinition(
         boolean enabled,
         String displayName,
         DuelModeType mode,
-        boolean confirmRequired,
         String templateId
 ) {
 }

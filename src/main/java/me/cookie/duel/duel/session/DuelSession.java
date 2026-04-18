@@ -15,7 +15,6 @@ public final class DuelSession {
     private final DuelModeType mode;
     private final String queueId;
     private final String templateId;
-    private final boolean confirmRequired;
     private final AtomicReference<DuelSessionState> state;
 
     public DuelSession(UUID sessionId,
@@ -23,15 +22,13 @@ public final class DuelSession {
                        UUID secondPlayer,
                        DuelModeType mode,
                        String queueId,
-                       String templateId,
-                       boolean confirmRequired) {
+                       String templateId) {
         this.sessionId = Objects.requireNonNull(sessionId, "sessionId");
         this.firstPlayer = Objects.requireNonNull(firstPlayer, "firstPlayer");
         this.secondPlayer = Objects.requireNonNull(secondPlayer, "secondPlayer");
         this.mode = Objects.requireNonNull(mode, "mode");
         this.queueId = Objects.requireNonNull(queueId, "queueId");
         this.templateId = templateId;
-        this.confirmRequired = confirmRequired;
         this.state = new AtomicReference<>(DuelSessionState.MATCH_FOUND);
     }
 
@@ -57,10 +54,6 @@ public final class DuelSession {
 
     public String templateId() {
         return templateId;
-    }
-
-    public boolean confirmRequired() {
-        return confirmRequired;
     }
 
     public DuelSessionState state() {

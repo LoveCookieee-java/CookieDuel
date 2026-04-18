@@ -21,6 +21,6 @@ public final class PlayerLifecycleListener implements Listener {
 
     @EventHandler
     public void onPlayerJoin(PlayerJoinEvent event) {
-        duelLifecycleService.applyPendingRestore(event.getPlayer());
+        duelLifecycleService.applyPendingReturn(event.getPlayer());
     }
 }

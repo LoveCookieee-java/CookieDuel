@@ -134,8 +134,7 @@ public final class MatchmakingService {
                 challengerId,
                 removedEntry.mode(),
                 removedEntry.id(),
-                templateId,
-                true
+                templateId
         );
         DuelSessionContext context = duelSessionManager.register(session);
         antiAbuseService.recordQueueJoin(challengerId);

@@ -9,7 +9,6 @@ import me.cookie.duel.duel.instance.WorldTemplateManager;
 import me.cookie.duel.duel.queue.PlayerQueueRegistry;
 import me.cookie.duel.duel.queue.gui.QueueGuiService;
 import me.cookie.duel.duel.service.AntiAbuseService;
-import me.cookie.duel.duel.service.ConfirmService;
 import me.cookie.duel.duel.service.DuelLifecycleService;
 import me.cookie.duel.duel.service.MatchmakingService;
 import me.cookie.duel.duel.service.SnapshotService;
@@ -53,7 +52,6 @@ public final class CookieDuelPlugin extends JavaPlugin {
         DuelSessionManager duelSessionManager = new DuelSessionManager();
         AntiAbuseService antiAbuseService = new AntiAbuseService(configService);
         MatchmakingService matchmakingService = new MatchmakingService(configService, playerQueueRegistry, duelSessionManager, antiAbuseService);
-        ConfirmService confirmService = new ConfirmService(schedulerFacade);
         TeleportCoordinator teleportCoordinator = new TeleportCoordinator(schedulerFacade);
         SnapshotService snapshotService = new SnapshotService(schedulerFacade);
         WildLocationService wildLocationService = new WildLocationService(new WildLocationValidator());
@@ -81,7 +79,6 @@ public final class CookieDuelPlugin extends JavaPlugin {
                 schedulerFacade,
                 duelSessionManager,
                 matchmakingService,
-                confirmService,
                 teleportCoordinator,
                 snapshotService,
                 antiAbuseService,
