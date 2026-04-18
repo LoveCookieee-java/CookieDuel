@@ -31,8 +31,8 @@ Arena duels clone a configured template world after both players accept, telepor
 ## Commands
 
 - `/cookieduel queue <id> <mode>` - create a queue entry you own
-- `/cookieduel queues` - open the queue browser GUI
-- `/cookieduel info <id>` - show basic info about an active queue
+- `/cookieduel list` - open the queue browser GUI
+- `/cookieduel random` - join a random queue you can legally enter
 - `/cookieduel leave`
 - `/cookieduel accept`
 - `/cookieduel deny`
@@ -70,7 +70,8 @@ No external plugin dependencies required.
 ## Notes
 
 - Queue entries are created by players in game; they are not a static list from config.
-- `/cd queues` opens the live queue browser and supports paging plus manual refresh.
+- `/cd list` opens the live queue browser and supports paging plus manual refresh.
+- `/cd random` picks one valid queue entry at random, then uses the normal join flow.
 - Wild search uses the configured world's spawn as the search origin.
 - The Wild world must already be loaded. CookieDuel does not auto-load it.
 - Arena templates must already exist and be valid on disk.

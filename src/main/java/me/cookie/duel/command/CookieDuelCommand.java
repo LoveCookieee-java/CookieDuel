@@ -2,7 +2,6 @@ package me.cookie.duel.command;
 
 import me.cookie.duel.config.ConfigService;
 import me.cookie.duel.duel.DuelModeType;
-import me.cookie.duel.duel.queue.PlayerQueueEntry;
 import me.cookie.duel.duel.queue.gui.QueueGuiService;
 import me.cookie.duel.duel.service.DuelLifecycleService;
 import me.cookie.duel.message.MessageService;
@@ -15,15 +14,11 @@ import org.bukkit.command.TabCompleter;
 import org.bukkit.entity.Player;
 
 import java.util.ArrayList;
-import java.time.ZoneId;
-import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 
 public final class CookieDuelCommand implements CommandExecutor, TabCompleter {
-
-    private static final DateTimeFormatter CREATED_AT_FORMAT = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm");
 
     private final ConfigService configService;
     private final DuelLifecycleService duelLifecycleService;
@@ -55,12 +50,8 @@ public final class CookieDuelCommand implements CommandExecutor, TabCompleter {
             return handleAdmin(sender, args);
         }
 
-        if ("queues".equals(subcommand)) {
-            return handleQueues(sender);
-        }
-
-        if ("info".equals(subcommand)) {
-            return handleQueueInfo(sender, args);
+        if ("list".equals(subcommand)) {
+            return handleList(sender);
         }
 
         if (!(sender instanceof Player player)) {
@@ -70,6 +61,10 @@ public final class CookieDuelCommand implements CommandExecutor, TabCompleter {
 
         return switch (subcommand) {
             case "queue" -> handleQueue(player, args);
+            case "random" -> {
+                duelLifecycleService.joinRandomQueueEntry(player);
+                yield true;
+            }
             case "leave" -> {
                 duelLifecycleService.leaveQueue(player);
                 yield true;
@@ -106,40 +101,13 @@ public final class CookieDuelCommand implements CommandExecutor, TabCompleter {
         return true;
     }
 
-    private boolean handleQueues(CommandSender sender) {
+    private boolean handleList(CommandSender sender) {
         if (!(sender instanceof Player player)) {
             messageService.send(sender, "general.player-only");
             return true;
         }
 
         queueGuiService.open(player);
-        return true;
-    }
-
-    private boolean handleQueueInfo(CommandSender sender, String[] args) {
-        if (args.length < 2) {
-            messageService.send(sender, "queue.info-usage");
-            return true;
-        }
-
-        PlayerQueueEntry entry = duelLifecycleService.queueEntry(args[1]).orElse(null);
-        if (entry == null) {
-            messageService.send(sender, "queue.not-found", Map.of("id", args[1]));
-            return true;
-        }
-
-        messageService.send(sender, "queue.info-header", Map.of("id", entry.id()));
-        messageService.send(sender, "queue.info-owner", Map.of("owner", entry.ownerName()));
-        messageService.send(sender, "queue.info-mode", Map.of("mode", entry.mode().name()));
-        messageService.send(sender, "queue.info-money", Map.of("money", "$" + entry.money()));
-        messageService.send(sender, "queue.info-created", Map.of(
-                "created",
-                CREATED_AT_FORMAT.format(entry.createdAt().atZone(ZoneId.systemDefault()))
-        ));
-        messageService.send(sender, "queue.info-active", Map.of(
-                "active",
-                messageService.renderRaw(entry.active() ? "general.value-yes" : "general.value-no", Map.of())
-        ));
         return true;
     }
 
@@ -198,8 +166,8 @@ public final class CookieDuelCommand implements CommandExecutor, TabCompleter {
         List<String> suggestions = new ArrayList<>();
         if (args.length == 1) {
             suggestions.add("queue");
-            suggestions.add("queues");
-            suggestions.add("info");
+            suggestions.add("list");
+            suggestions.add("random");
             suggestions.add("leave");
             suggestions.add("accept");
             suggestions.add("deny");
@@ -218,13 +186,6 @@ public final class CookieDuelCommand implements CommandExecutor, TabCompleter {
             suggestions.add("WILD");
             suggestions.add("ARENA_INSTANCE");
             return filter(suggestions, args[2]);
-        }
-
-        if (args.length == 2 && "info".equalsIgnoreCase(args[0])) {
-            duelLifecycleService.activeQueueEntries().stream()
-                    .map(PlayerQueueEntry::id)
-                    .forEach(suggestions::add);
-            return filter(suggestions, args[1]);
         }
 
         if (sender.hasPermission("cookieduel.admin") && args.length == 2 && "admin".equalsIgnoreCase(args[0])) {
@@ -261,8 +222,8 @@ public final class CookieDuelCommand implements CommandExecutor, TabCompleter {
 
     private void sendHelp(CommandSender sender) {
         sender.sendMessage("/cookieduel queue <id> <mode>");
-        sender.sendMessage("/cookieduel queues");
-        sender.sendMessage("/cookieduel info <id>");
+        sender.sendMessage("/cookieduel list");
+        sender.sendMessage("/cookieduel random");
         sender.sendMessage("/cookieduel leave");
         sender.sendMessage("/cookieduel accept");
         sender.sendMessage("/cookieduel deny");
@@ -270,7 +231,7 @@ public final class CookieDuelCommand implements CommandExecutor, TabCompleter {
         sender.sendMessage("/cookieduel admin reload");
         sender.sendMessage("/cookieduel admin forcestop <player>");
         sender.sendMessage("/cookieduel admin cleanupinstances");
-        sender.sendMessage("Use /cookieduel queue <id> <mode> to open a queue, then /cookieduel queues to browse active entries.");
+        sender.sendMessage("Use /cookieduel queue <id> <mode> to open a queue, then /cookieduel list to browse active entries.");
     }
 
     private DuelModeType parseMode(String raw) {

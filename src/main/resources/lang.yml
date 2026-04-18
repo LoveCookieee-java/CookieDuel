@@ -6,13 +6,9 @@ prefix: "&6CookieDuel &8» &r"
 general:
   player-only: "&cOnly players can use that command."
   invalid-mode: "&cInvalid mode. Use &fWILD &cor &fARENA_INSTANCE&c."
-  value-yes: "&aYes"
-  value-no: "&cNo"
 
 queue:
   create-usage: "&eUse &f/cd queue <id> <mode>&e."
-  list-usage: "&eUse &f/cd queues &eto browse active queues."
-  info-usage: "&eUse &f/cd info <id>&e."
   created: "&aCreated queue &f{id}&a in &f{mode}&a mode."
   removed: "&eRemoved your queue entry."
   not-in-queue: "&cYou don't have an active queue entry."
@@ -22,19 +18,14 @@ queue:
   join-cooldown: "&cWait &f{seconds}s &cbefore opening another queue."
   leave-penalty: "&cWait &f{seconds}s &cbefore opening another queue."
   rematch-blocked: "&cYou can't rematch that player yet."
-  not-found: "&cQueue &f{id} &cwas not found. Use &f/cd queues &cto browse active entries."
+  not-found: "&cQueue &f{id} &cwas not found. Use &f/cd list &cto browse active entries."
   owner-offline: "&cThat queue is no longer available."
   own-entry: "&cYou can't join your own queue."
   disabled-mode: "&cThat duel mode is disabled right now."
   no-default-arena-template: "&cArena queues are not available because no default arena template is configured."
   join-started: "&eJoining queue &f{id}&e..."
-  list-empty: "&cThere are no active queues right now."
-  info-header: "&eQueue &f{id}"
-  info-owner: "&7Owner: &f{owner}"
-  info-mode: "&7Mode: &f{mode}"
-  info-money: "&7Money: &f{money}"
-  info-created: "&7Created: &f{created}"
-  info-active: "&7Active: &f{active}"
+  random-none: "&cThere are no queues you can join right now."
+  random-joining: "&eJoining a random queue: &f{id} &7({owner} / {mode})"
   gui-refresh-cooldown: "&cWait &f{seconds}s &cbefore refreshing again."
 
 confirm:
@@ -76,7 +67,7 @@ admin:
 
 gui:
   queue-browser:
-    title: "&8Active Duel Queues"
+    title: "&8Queue Browser"
     empty-name: "&7No active queues"
     empty-lore:
       - "&8No one has opened a queue yet."

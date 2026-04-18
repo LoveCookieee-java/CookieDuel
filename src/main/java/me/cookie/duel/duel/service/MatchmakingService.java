@@ -142,6 +142,10 @@ public final class MatchmakingService {
         return new JoinQueueResult(JoinQueueStatus.MATCH_FOUND, removedEntry, session, context, 0L);
     }
 
+    public boolean ownsQueue(UUID playerId) {
+        return playerQueueRegistry.hasOwner(playerId);
+    }
+
     public PlayerQueueEntry removeOwnedQueue(UUID playerId) {
         return playerQueueRegistry.removeByOwner(playerId);
     }
@@ -155,12 +159,19 @@ public final class MatchmakingService {
         return true;
     }
 
-    public Optional<PlayerQueueEntry> queueEntry(String entryId) {
-        return playerQueueRegistry.byId(entryId);
-    }
-
     public List<PlayerQueueEntry> activeEntries() {
         return playerQueueRegistry.activeEntries();
+    }
+
+    public List<PlayerQueueEntry> randomJoinCandidates(UUID challengerId) {
+        boolean arenaAvailable = resolveArenaTemplateId().isPresent();
+        return playerQueueRegistry.activeEntries().stream()
+                .filter(PlayerQueueEntry::active)
+                .filter(entry -> !entry.ownerId().equals(challengerId))
+                .filter(entry -> Bukkit.getPlayer(entry.ownerId()) != null)
+                .filter(entry -> isModeEnabled(entry.mode()))
+                .filter(entry -> entry.mode() != DuelModeType.ARENA_INSTANCE || arenaAvailable)
+                .toList();
     }
 
     public void clearQueues() {

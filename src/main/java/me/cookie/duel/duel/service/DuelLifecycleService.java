@@ -28,6 +28,7 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -102,24 +103,33 @@ public final class DuelLifecycleService {
     }
 
     public void joinQueueEntry(Player player, String queueId) {
+        schedulerFacade.runSync(() -> joinQueueEntryInternal(player, queueId));
+    }
+
+    public void joinRandomQueueEntry(Player player) {
         schedulerFacade.runSync(() -> {
-            MatchmakingService.JoinQueueResult result = matchmakingService.joinQueue(player.getUniqueId(), queueId);
-            switch (result.status()) {
-                case MATCH_FOUND -> {
-                    sendToPlayer(player, "queue.join-started", Map.of("id", result.entry().id()));
-                    handleMatchFound(result.sessionContext());
-                }
-                case NOT_FOUND -> sendToPlayer(player, "queue.not-found", Map.of("id", queueId));
-                case OWN_QUEUE -> sendToPlayer(player, "queue.own-entry", Map.of());
-                case OWNER_UNAVAILABLE -> sendToPlayer(player, "queue.owner-offline", Map.of());
-                case ALREADY_OWN_QUEUE -> sendToPlayer(player, "queue.already-own", Map.of());
-                case IN_SESSION -> sendToPlayer(player, "queue.in-session", Map.of());
-                case JOIN_COOLDOWN -> sendToPlayer(player, "queue.join-cooldown", Map.of("seconds", String.valueOf(result.secondsRemaining())));
-                case LEAVE_PENALTY -> sendToPlayer(player, "queue.leave-penalty", Map.of("seconds", String.valueOf(result.secondsRemaining())));
-                case REMATCH_BLOCKED -> sendToPlayer(player, "queue.rematch-blocked", Map.of());
-                case MODE_DISABLED -> sendToPlayer(player, "queue.disabled-mode", Map.of());
-                case NO_ARENA_TEMPLATE -> sendToPlayer(player, "queue.no-default-arena-template", Map.of());
+            if (duelSessionManager.isInSession(player.getUniqueId())) {
+                sendToPlayer(player, "queue.in-session", Map.of());
+                return;
             }
+            if (matchmakingService.ownsQueue(player.getUniqueId())) {
+                sendToPlayer(player, "queue.already-own", Map.of());
+                return;
+            }
+
+            List<PlayerQueueEntry> candidates = matchmakingService.randomJoinCandidates(player.getUniqueId());
+            if (candidates.isEmpty()) {
+                sendToPlayer(player, "queue.random-none", Map.of());
+                return;
+            }
+
+            PlayerQueueEntry selected = candidates.get(ThreadLocalRandom.current().nextInt(candidates.size()));
+            sendToPlayer(player, "queue.random-joining", Map.of(
+                    "id", selected.id(),
+                    "owner", selected.ownerName(),
+                    "mode", selected.mode().name()
+            ));
+            joinQueueEntryInternal(player, selected.id());
         });
     }
 
@@ -245,10 +255,6 @@ public final class DuelLifecycleService {
         return matchmakingService.activeEntries();
     }
 
-    public Optional<PlayerQueueEntry> queueEntry(String queueId) {
-        return matchmakingService.queueEntry(queueId);
-    }
-
     private void handleMatchFound(DuelSessionContext context) {
         Player first = Bukkit.getPlayer(context.session().firstPlayer());
         Player second = Bukkit.getPlayer(context.session().secondPlayer());
@@ -269,6 +275,26 @@ public final class DuelLifecycleService {
         }
 
         beginProvisioning(context);
+    }
+
+    private void joinQueueEntryInternal(Player player, String queueId) {
+        MatchmakingService.JoinQueueResult result = matchmakingService.joinQueue(player.getUniqueId(), queueId);
+        switch (result.status()) {
+            case MATCH_FOUND -> {
+                sendToPlayer(player, "queue.join-started", Map.of("id", result.entry().id()));
+                handleMatchFound(result.sessionContext());
+            }
+            case NOT_FOUND -> sendToPlayer(player, "queue.not-found", Map.of("id", queueId));
+            case OWN_QUEUE -> sendToPlayer(player, "queue.own-entry", Map.of());
+            case OWNER_UNAVAILABLE -> sendToPlayer(player, "queue.owner-offline", Map.of());
+            case ALREADY_OWN_QUEUE -> sendToPlayer(player, "queue.already-own", Map.of());
+            case IN_SESSION -> sendToPlayer(player, "queue.in-session", Map.of());
+            case JOIN_COOLDOWN -> sendToPlayer(player, "queue.join-cooldown", Map.of("seconds", String.valueOf(result.secondsRemaining())));
+            case LEAVE_PENALTY -> sendToPlayer(player, "queue.leave-penalty", Map.of("seconds", String.valueOf(result.secondsRemaining())));
+            case REMATCH_BLOCKED -> sendToPlayer(player, "queue.rematch-blocked", Map.of());
+            case MODE_DISABLED -> sendToPlayer(player, "queue.disabled-mode", Map.of());
+            case NO_ARENA_TEMPLATE -> sendToPlayer(player, "queue.no-default-arena-template", Map.of());
+        }
     }
 
     private void beginProvisioning(DuelSessionContext context) {
