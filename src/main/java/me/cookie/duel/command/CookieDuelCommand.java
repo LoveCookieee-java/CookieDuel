@@ -1,7 +1,8 @@
 package me.cookie.duel.command;
 
+import me.cookie.duel.CookieDuelPlugin;
+import me.cookie.duel.config.ConfigurationException;
 import me.cookie.duel.config.ConfigService;
-import me.cookie.duel.duel.DuelModeType;
 import me.cookie.duel.duel.queue.gui.QueueGuiService;
 import me.cookie.duel.duel.service.DuelLifecycleService;
 import me.cookie.duel.message.MessageService;
@@ -20,17 +21,20 @@ import java.util.Map;
 
 public final class CookieDuelCommand implements CommandExecutor, TabCompleter {
 
+    private final CookieDuelPlugin plugin;
     private final ConfigService configService;
     private final DuelLifecycleService duelLifecycleService;
     private final QueueGuiService queueGuiService;
     private final MessageService messageService;
     private final SchedulerFacade schedulerFacade;
 
-    public CookieDuelCommand(ConfigService configService,
+    public CookieDuelCommand(CookieDuelPlugin plugin,
+                             ConfigService configService,
                              DuelLifecycleService duelLifecycleService,
                              QueueGuiService queueGuiService,
                              MessageService messageService,
                              SchedulerFacade schedulerFacade) {
+        this.plugin = plugin;
         this.configService = configService;
         this.duelLifecycleService = duelLifecycleService;
         this.queueGuiService = queueGuiService;
@@ -60,6 +64,7 @@ public final class CookieDuelCommand implements CommandExecutor, TabCompleter {
         }
 
         return switch (subcommand) {
+            case "duel" -> handleDuel(player, args);
             case "queue" -> handleQueue(player, args);
             case "random" -> {
                 duelLifecycleService.joinRandomQueueEntry(player);
@@ -69,27 +74,59 @@ public final class CookieDuelCommand implements CommandExecutor, TabCompleter {
                 duelLifecycleService.leaveQueue(player);
                 yield true;
             }
-            case "surrender" -> {
-                duelLifecycleService.surrender(player);
+            case "accept" -> handleAccept(player, args);
+            case "deny" -> handleDeny(player, args);
+            case "out" -> {
+                duelLifecycleService.out(player);
                 yield true;
             }
             default -> false;
         };
     }
 
-    private boolean handleQueue(Player player, String[] args) {
+    private boolean handleDuel(Player player, String[] args) {
         if (args.length != 2) {
+            messageService.send(player, "challenge.duel-usage");
+            return true;
+        }
+
+        Player target = Bukkit.getPlayerExact(args[1]);
+        if (target == null || !target.isOnline()) {
+            messageService.send(player, "challenge.target-offline", Map.of("player", args[1]));
+            return true;
+        }
+
+        duelLifecycleService.createDirectDuelRequest(player, target);
+        return true;
+    }
+
+    private boolean handleQueue(Player player, String[] args) {
+        if (args.length != 1) {
             messageService.send(player, "queue.create-usage");
             return true;
         }
 
-        DuelModeType mode = parseMode(args[1]);
-        if (mode == null) {
-            messageService.send(player, "general.invalid-mode");
+        duelLifecycleService.createQueueEntry(player);
+        return true;
+    }
+
+    private boolean handleAccept(Player player, String[] args) {
+        if (args.length > 2) {
+            messageService.send(player, "challenge.accept-usage");
             return true;
         }
 
-        duelLifecycleService.createQueueEntry(player, mode);
+        duelLifecycleService.accept(player, args.length == 2 ? args[1] : null);
+        return true;
+    }
+
+    private boolean handleDeny(Player player, String[] args) {
+        if (args.length > 2) {
+            messageService.send(player, "challenge.deny-usage");
+            return true;
+        }
+
+        duelLifecycleService.deny(player, args.length == 2 ? args[1] : null);
         return true;
     }
 
@@ -122,6 +159,10 @@ public final class CookieDuelCommand implements CommandExecutor, TabCompleter {
                     messageService.send(sender, "admin.reload-done");
                 } catch (Exception exception) {
                     messageService.send(sender, "admin.reload-failed", Map.of("reason", exception.getMessage()));
+                    if (exception instanceof ConfigurationException) {
+                        plugin.getLogger().severe(exception.getMessage());
+                        Bukkit.getPluginManager().disablePlugin(plugin);
+                    }
                 }
                 return true;
             }
@@ -157,20 +198,34 @@ public final class CookieDuelCommand implements CommandExecutor, TabCompleter {
     public List<String> onTabComplete(CommandSender sender, Command command, String alias, String[] args) {
         List<String> suggestions = new ArrayList<>();
         if (args.length == 1) {
+            suggestions.add("duel");
             suggestions.add("queue");
             suggestions.add("list");
             suggestions.add("random");
             suggestions.add("leave");
-            suggestions.add("surrender");
+            suggestions.add("accept");
+            suggestions.add("deny");
+            suggestions.add("out");
             if (sender.hasPermission("cookieduel.admin")) {
                 suggestions.add("admin");
             }
             return filter(suggestions, args[0]);
         }
 
-        if (args.length == 2 && "queue".equalsIgnoreCase(args[0])) {
-            suggestions.add("WILD");
-            suggestions.add("ARENA");
+        if (args.length == 2 && "duel".equalsIgnoreCase(args[0])) {
+            for (Player onlinePlayer : Bukkit.getOnlinePlayers()) {
+                if (!onlinePlayer.equals(sender)) {
+                    suggestions.add(onlinePlayer.getName());
+                }
+            }
+            return filter(suggestions, args[1]);
+        }
+
+        if (args.length == 2 && ("accept".equalsIgnoreCase(args[0]) || "deny".equalsIgnoreCase(args[0])) && sender instanceof Player player) {
+            String pendingRequesterName = duelLifecycleService.pendingRequesterName(player);
+            if (pendingRequesterName != null) {
+                suggestions.add(pendingRequesterName);
+            }
             return filter(suggestions, args[1]);
         }
 
@@ -207,18 +262,17 @@ public final class CookieDuelCommand implements CommandExecutor, TabCompleter {
     }
 
     private void sendHelp(CommandSender sender) {
-        sender.sendMessage("/cd queue <mode>");
+        sender.sendMessage("/cd duel <player>");
+        sender.sendMessage("/cd accept [player]");
+        sender.sendMessage("/cd deny [player]");
+        sender.sendMessage("/cd queue");
         sender.sendMessage("/cd list");
         sender.sendMessage("/cd random");
         sender.sendMessage("/cd leave");
-        sender.sendMessage("/cd surrender");
+        sender.sendMessage("/cd out");
         sender.sendMessage("/cd admin reload");
         sender.sendMessage("/cd admin forcestop <player>");
         sender.sendMessage("/cd admin cleanupinstances");
-        sender.sendMessage("Use /cd queue <mode> to open a queue under your player name, then /cd list to browse active entries.");
-    }
-
-    private DuelModeType parseMode(String raw) {
-        return DuelModeType.fromInput(raw);
+        sender.sendMessage("Use /cd queue to open a queue in the active config mode, or /cd duel <player> for a direct challenge.");
     }
 }

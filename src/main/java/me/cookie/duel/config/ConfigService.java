@@ -49,7 +49,7 @@ public final class ConfigService {
         this.worldsConfig = worldsConfigLoader.load(worldsYaml);
         this.langConfig = langYaml;
 
-        validator.validate(mainConfig, queuesConfig, worldsConfig);
+        validator.validate(mainConfig, queuesConfig, worldsConfig, langYaml);
     }
 
     public MainConfig mainConfig() {

@@ -9,6 +9,7 @@ import me.cookie.duel.duel.instance.WorldTemplateManager;
 import me.cookie.duel.duel.queue.PlayerQueueRegistry;
 import me.cookie.duel.duel.queue.gui.QueueGuiService;
 import me.cookie.duel.duel.service.AntiAbuseService;
+import me.cookie.duel.duel.service.DuelRequestService;
 import me.cookie.duel.duel.service.DuelLifecycleService;
 import me.cookie.duel.duel.service.MatchmakingService;
 import me.cookie.duel.duel.service.SnapshotService;
@@ -46,7 +47,11 @@ public final class CookieDuelPlugin extends JavaPlugin {
             this.configService = new ConfigService(this);
             configService.load();
         } catch (Exception exception) {
-            getLogger().log(Level.SEVERE, "Could not load CookieDuel config files.", exception);
+            if (exception instanceof me.cookie.duel.config.ConfigurationException) {
+                getLogger().severe(exception.getMessage());
+            } else {
+                getLogger().log(Level.SEVERE, "Could not load CookieDuel config files.", exception);
+            }
             getServer().getPluginManager().disablePlugin(this);
             return;
         }
@@ -61,6 +66,7 @@ public final class CookieDuelPlugin extends JavaPlugin {
         DuelSessionManager duelSessionManager = new DuelSessionManager();
         AntiAbuseService antiAbuseService = new AntiAbuseService(configService);
         MatchmakingService matchmakingService = new MatchmakingService(configService, playerQueueRegistry, duelSessionManager, antiAbuseService);
+        DuelRequestService duelRequestService = new DuelRequestService(schedulerFacade);
         TeleportCoordinator teleportCoordinator = new TeleportCoordinator(schedulerFacade);
         SnapshotService snapshotService = new SnapshotService(schedulerFacade);
         WildLocationService wildLocationService = new WildLocationService(new WildLocationValidator());
@@ -88,6 +94,7 @@ public final class CookieDuelPlugin extends JavaPlugin {
                 schedulerFacade,
                 duelSessionManager,
                 matchmakingService,
+                duelRequestService,
                 teleportCoordinator,
                 snapshotService,
                 antiAbuseService,
@@ -99,7 +106,7 @@ public final class CookieDuelPlugin extends JavaPlugin {
         );
         QueueGuiService queueGuiService = new QueueGuiService(duelLifecycleService, messageService, playerProfileService, schedulerFacade);
 
-        registerCommand(new CookieDuelCommand(configService, duelLifecycleService, queueGuiService, messageService, schedulerFacade));
+        registerCommand(new CookieDuelCommand(this, configService, duelLifecycleService, queueGuiService, messageService, schedulerFacade));
         getServer().getPluginManager().registerEvents(new PlayerLifecycleListener(duelLifecycleService), this);
         getServer().getPluginManager().registerEvents(new DuelCombatListener(duelSessionManager, duelLifecycleService), this);
         getServer().getPluginManager().registerEvents(new InstanceProtectionListener(duelLifecycleService), this);
@@ -142,7 +149,11 @@ public final class CookieDuelPlugin extends JavaPlugin {
         String schedulerMode = schedulerFacade != null && schedulerFacade.isFolia()
                 ? "Folia runtime detected"
                 : "Paper scheduler mode";
+        String activeMode = configService.mainConfig().modes().activeMode()
+                .map(Enum::name)
+                .orElse("INVALID");
         getLogger().info("Scheduler: " + schedulerMode);
+        getLogger().info("Active mode: " + activeMode + " (exactly one mode must be enabled)");
         getLogger().info("WILD mode: " + (configService.mainConfig().modes().wildEnabled() ? "enabled" : "disabled"));
         getLogger().info("ARENA mode: " + (configService.mainConfig().modes().arena().enabled() ? "enabled" : "disabled"));
         getLogger().info("WILD world: " + configService.worldsConfig().wild().world()
@@ -160,7 +171,8 @@ public final class CookieDuelPlugin extends JavaPlugin {
         getLogger().info("Arena cleanup on startup: "
                 + configService.mainConfig().modes().arena().cleanupLeftoversOnStartup());
         getLogger().info("Arena templates are checked in the server world container.");
-        getLogger().info("Queues are player-created in game with /cd queue <mode> and use the owner's player name as the queue id.");
+        getLogger().info("Queues are player-created in game with /cd queue and always use the active config mode.");
+        getLogger().info("Direct duels use /cd duel <player> and also follow the active config mode.");
         getLogger().info("PlaceholderAPI support: " + (getServer().getPluginManager().isPluginEnabled("PlaceholderAPI") ? "enabled" : "not installed"));
         getLogger().info("Default arena template: " + configService.worldsConfig().defaultArenaTemplateId());
         getLogger().info("Arena templates loaded: " + configService.worldsConfig().arenaTemplates().size());

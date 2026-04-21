@@ -1,12 +1,12 @@
 # CookieDuel
 
 CookieDuel is a fast Paper duel plugin built for servers that want clean queue-based matchmaking without bloated setup or confusing command flow.
-Players create a duel room with a single command, browse live rooms in a polished GUI, and fight in either open-world `WILD` matches or temporary cloned `ARENA` instances.
+Players create a duel room with a single command, browse live rooms in a polished GUI, send direct duel requests, and fight in either open-world `WILD` matches or temporary cloned `ARENA` instances.
 
 ## Why CookieDuel
 
-- Simple player flow: `/cd queue <mode>`, `/cd list`, `/cd random`
-- Only two clear public modes: `WILD` and `ARENA`
+- Simple player flow: `/cd queue`, `/cd duel <player>`, `/cd list`, `/cd random`
+- Exactly one active public mode at a time: `WILD` or `ARENA`
 - Queue identity is automatic and tied to the owner's player name
 - 54-slot live queue browser with paging, refresh, and viewer profile card
 - Safe arena instance provisioning and cleanup
@@ -22,24 +22,28 @@ Players create a duel room with a single command, browse live rooms in a polishe
 
 ### WILD
 
-Wild duels use one configured world from `worlds.yml`. CookieDuel searches around that world's spawn, finds a safe center, and places both players on opposite sides with fair spacing.
+Wild duels use one configured world from `worlds.yml`. CookieDuel searches around that world's spawn, finds a safe center, and places both players on opposite sides with fair spacing. This is the default main mode.
 
 ### ARENA
 
-Arena duels clone a configured template world when the fight starts, teleport both players into the temporary arena, and fully clean it up after the duel ends.
+Arena duels clone a configured template world when the fight starts, teleport both players into the temporary arena, and fully clean it up after the duel ends. This mode is optional and should only be enabled when its template is ready.
+
+Only one mode may be enabled in `config.yml`.
+
+- If exactly one mode is enabled, CookieDuel runs normally
+- If both modes are enabled, CookieDuel disables itself
+- If both modes are disabled, CookieDuel disables itself
 
 ## Player commands
 
-- `/cd queue <mode>` - create a queue room using your player name as the room identity
+- `/cd duel <player>` - send a direct duel request using the active config mode
+- `/cd accept` or `/cd accept <player>` - accept a pending direct duel request
+- `/cd deny` or `/cd deny <player>` - deny a pending direct duel request
+- `/cd queue` - create a queue room using your player name as the room identity and the active config mode
 - `/cd list` - open the queue browser GUI
 - `/cd random` - join a random valid queue
 - `/cd leave` - leave your queue before the duel starts
-- `/cd surrender` - surrender an active duel
-
-Available queue modes:
-
-- `WILD`
-- `ARENA`
+- `/cd out` - leave your queue, cancel your pending challenge, or forfeit your current duel
 
 ## Admin commands
 
@@ -55,9 +59,10 @@ Alias:
 
 `/cd list` opens the live queue GUI.
 
+- Queue entries only show rooms from the active configured mode
 - Queue entries show `Player`, `Mode`, and `Money`
 - The viewer's own head is displayed in a dedicated slot
-- The profile card shows `Player`, `Money`, `Kills`, `Deaths`, and `Points`
+- The profile card shows `Player`, `Mode`, `Money`, `Kills`, `Deaths`, and `Points`
 - Previous page, next page, and refresh controls stay available on the bottom row
 
 ## Optional integrations
@@ -96,7 +101,10 @@ When PlaceholderAPI is installed, CookieDuel registers:
 
 - Queue rooms are created live by players, not pre-defined in config
 - A player can only own one active queue at a time
-- `/cd queue <mode>` automatically uses the player's own name for queue identity
+- `/cd queue` automatically uses the player's own name for queue identity
+- `/cd duel <player>`, `/cd queue`, `/cd list`, and `/cd random` all follow the active config mode automatically
+- `/cd out` removes your queue immediately and awards the other player the win if you use it during a duel
+- Quit, kick, disconnect, and lethal damage also remove stale queue state and award the other player the win in an active duel
 - `%CD_WILD%` and `%CD_ARENA%` reflect live queue counts, not cached values
 - Arena templates must already exist on disk
 - Wild spawn search uses the configured world's spawn as its origin

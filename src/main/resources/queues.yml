@@ -1,4 +1,5 @@
-# Queue entries are now created in game with /cd queue <mode>.
+# Queue entries are now created in game with /cd queue.
+# The active duel mode comes from config.yml.
 # The queue identity automatically uses the owner's player name.
 # This file is kept for future queue-related settings or presets.
 # It does not define the live queue list anymore.

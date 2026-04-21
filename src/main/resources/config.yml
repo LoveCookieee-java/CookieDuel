@@ -1,16 +1,20 @@
 # CookieDuel main settings.
-# Wild mode uses one loaded world and paired spawns.
-# Arena mode clones a template world when a duel starts.
+# WILD is the main default mode.
+# ARENA is optional.
+# Enable exactly one mode at a time.
+# If both modes are enabled or both are disabled, CookieDuel disables itself.
 
 general:
   debug: false
 
 modes:
   wild:
+    # Main/default mode.
     enabled: true
 
   arena:
-    # Off by default. Turn this on after your arena template world is ready.
+    # Optional mode. Turn this on only after your arena template world is ready.
+    # If you enable ARENA, turn WILD off.
     enabled: false
     # Prevent too many temporary duel worlds from being active at once.
     max-active-instances: 3

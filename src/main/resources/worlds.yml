@@ -46,7 +46,7 @@ wild:
     nearby-obstruction-check-radius: 1
 
 arena:
-  # Player-created arena queues use this template unless you change the code to select another one.
+  # Arena queues and direct arena duels use this template when ARENA is the active mode.
   default-template: "default"
 
   templates:

@@ -159,15 +159,22 @@ public final class MatchmakingService {
     }
 
     public PlayerQueueEntry removeOwnedQueue(UUID playerId) {
-        return playerQueueRegistry.removeByOwner(playerId);
+        return removeOwnedQueue(playerId, false);
+    }
+
+    public PlayerQueueEntry removeOwnedQueue(UUID playerId, boolean applyLeavePenalty) {
+        PlayerQueueEntry removed = playerQueueRegistry.removeByOwner(playerId);
+        if (removed != null && applyLeavePenalty) {
+            antiAbuseService.recordQueueLeave(playerId);
+        }
+        return removed;
     }
 
     public boolean leaveQueue(UUID playerId) {
-        PlayerQueueEntry removed = playerQueueRegistry.removeByOwner(playerId);
+        PlayerQueueEntry removed = removeOwnedQueue(playerId, true);
         if (removed == null) {
             return false;
         }
-        antiAbuseService.recordQueueLeave(playerId);
         return true;
     }
 
@@ -175,15 +182,88 @@ public final class MatchmakingService {
         return playerQueueRegistry.activeEntries();
     }
 
+    public List<PlayerQueueEntry> activeEntries(DuelModeType mode) {
+        return playerQueueRegistry.activeEntries().stream()
+                .filter(entry -> entry.mode() == mode)
+                .toList();
+    }
+
     public List<PlayerQueueEntry> randomJoinCandidates(UUID challengerId) {
+        return randomJoinCandidates(challengerId, null);
+    }
+
+    public List<PlayerQueueEntry> randomJoinCandidates(UUID challengerId, DuelModeType mode) {
         boolean arenaAvailable = resolveArenaTemplateId().isPresent();
         return playerQueueRegistry.activeEntries().stream()
                 .filter(PlayerQueueEntry::active)
                 .filter(entry -> !entry.ownerId().equals(challengerId))
                 .filter(entry -> Bukkit.getPlayer(entry.ownerId()) != null)
+                .filter(entry -> mode == null || entry.mode() == mode)
                 .filter(entry -> isModeEnabled(entry.mode()))
                 .filter(entry -> entry.mode() != DuelModeType.ARENA || arenaAvailable)
                 .toList();
+    }
+
+    public void removeQueuesNotInMode(DuelModeType mode) {
+        playerQueueRegistry.activeEntries().stream()
+                .filter(entry -> entry.mode() != mode)
+                .map(PlayerQueueEntry::ownerId)
+                .toList()
+                .forEach(this::removeOwnedQueue);
+    }
+
+    public DirectDuelCheckResult checkDirectDuel(UUID requesterId, UUID targetId, DuelModeType mode) {
+        if (requesterId.equals(targetId)) {
+            return new DirectDuelCheckResult(DirectDuelStatus.SELF_TARGET);
+        }
+        if (!isModeEnabled(mode)) {
+            return new DirectDuelCheckResult(DirectDuelStatus.MODE_DISABLED);
+        }
+        if (playerQueueRegistry.hasOwner(requesterId)) {
+            return new DirectDuelCheckResult(DirectDuelStatus.REQUESTER_HAS_QUEUE);
+        }
+        if (playerQueueRegistry.hasOwner(targetId)) {
+            return new DirectDuelCheckResult(DirectDuelStatus.TARGET_HAS_QUEUE);
+        }
+        if (duelSessionManager.isInSession(requesterId)) {
+            return new DirectDuelCheckResult(DirectDuelStatus.REQUESTER_IN_SESSION);
+        }
+        if (duelSessionManager.isInSession(targetId)) {
+            return new DirectDuelCheckResult(DirectDuelStatus.TARGET_IN_SESSION);
+        }
+        if (antiAbuseService.isRematchBlocked(requesterId, targetId)) {
+            return new DirectDuelCheckResult(DirectDuelStatus.REMATCH_BLOCKED);
+        }
+        if (mode == DuelModeType.ARENA && resolveArenaTemplateId().isEmpty()) {
+            return new DirectDuelCheckResult(DirectDuelStatus.NO_ARENA_TEMPLATE);
+        }
+        return new DirectDuelCheckResult(DirectDuelStatus.READY);
+    }
+
+    public DirectDuelStartResult startDirectDuel(UUID requesterId,
+                                                 String requesterName,
+                                                 UUID targetId,
+                                                 String targetName,
+                                                 DuelModeType mode) {
+        DirectDuelCheckResult checkResult = checkDirectDuel(requesterId, targetId, mode);
+        if (checkResult.status() != DirectDuelStatus.READY) {
+            return new DirectDuelStartResult(checkResult.status(), null, null);
+        }
+
+        String templateId = mode == DuelModeType.ARENA
+                ? resolveArenaTemplateId().orElse(null)
+                : null;
+
+        DuelSession session = new DuelSession(
+                UUID.randomUUID(),
+                requesterId,
+                targetId,
+                mode,
+                requesterName + "-vs-" + targetName,
+                templateId
+        );
+        DuelSessionContext context = duelSessionManager.register(session);
+        return new DirectDuelStartResult(DirectDuelStatus.READY, session, context);
     }
 
     public void clearQueues() {
@@ -248,5 +328,27 @@ public final class MatchmakingService {
         REMATCH_BLOCKED,
         MODE_DISABLED,
         NO_ARENA_TEMPLATE
+    }
+
+    public enum DirectDuelStatus {
+        READY,
+        SELF_TARGET,
+        REQUESTER_HAS_QUEUE,
+        TARGET_HAS_QUEUE,
+        REQUESTER_IN_SESSION,
+        TARGET_IN_SESSION,
+        REMATCH_BLOCKED,
+        MODE_DISABLED,
+        NO_ARENA_TEMPLATE
+    }
+
+    public record DirectDuelCheckResult(DirectDuelStatus status) {
+    }
+
+    public record DirectDuelStartResult(
+            DirectDuelStatus status,
+            DuelSession session,
+            DuelSessionContext sessionContext
+    ) {
     }
 }

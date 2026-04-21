@@ -22,8 +22,8 @@ import org.bukkit.Location;
 import org.bukkit.World;
 import org.bukkit.entity.Player;
 
-import java.util.Map;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
@@ -40,6 +40,7 @@ public final class DuelLifecycleService {
     private final SchedulerFacade schedulerFacade;
     private final DuelSessionManager duelSessionManager;
     private final MatchmakingService matchmakingService;
+    private final DuelRequestService duelRequestService;
     private final TeleportCoordinator teleportCoordinator;
     private final SnapshotService snapshotService;
     private final AntiAbuseService antiAbuseService;
@@ -54,6 +55,7 @@ public final class DuelLifecycleService {
                                 SchedulerFacade schedulerFacade,
                                 DuelSessionManager duelSessionManager,
                                 MatchmakingService matchmakingService,
+                                DuelRequestService duelRequestService,
                                 TeleportCoordinator teleportCoordinator,
                                 SnapshotService snapshotService,
                                 AntiAbuseService antiAbuseService,
@@ -67,6 +69,7 @@ public final class DuelLifecycleService {
         this.schedulerFacade = schedulerFacade;
         this.duelSessionManager = duelSessionManager;
         this.matchmakingService = matchmakingService;
+        this.duelRequestService = duelRequestService;
         this.teleportCoordinator = teleportCoordinator;
         this.snapshotService = snapshotService;
         this.antiAbuseService = antiAbuseService;
@@ -77,8 +80,9 @@ public final class DuelLifecycleService {
         this.logger = logger;
     }
 
-    public void createQueueEntry(Player player, DuelModeType mode) {
+    public void createQueueEntry(Player player) {
         schedulerFacade.runSync(() -> {
+            DuelModeType mode = activeMode();
             MatchmakingService.CreateQueueResult result = matchmakingService.createQueue(
                     player.getUniqueId(),
                     player.getName(),
@@ -103,6 +107,46 @@ public final class DuelLifecycleService {
         });
     }
 
+    public void createDirectDuelRequest(Player challenger, Player target) {
+        schedulerFacade.runSync(() -> {
+            DuelModeType mode = activeMode();
+            MatchmakingService.DirectDuelCheckResult checkResult = matchmakingService.checkDirectDuel(
+                    challenger.getUniqueId(),
+                    target.getUniqueId(),
+                    mode
+            );
+            if (!handleDirectDuelCheckFailure(challenger, checkResult.status(), target.getName())) {
+                return;
+            }
+
+            DuelRequestService.CreateRequestResult createResult = duelRequestService.create(
+                    challenger.getUniqueId(),
+                    challenger.getName(),
+                    target.getUniqueId(),
+                    target.getName(),
+                    mode,
+                    this::handleExpiredDirectDuelRequest
+            );
+
+            switch (createResult.status()) {
+                case CREATED -> {
+                    sendToPlayer(challenger, "challenge.sent", Map.of(
+                            "player", target.getName(),
+                            "mode", displayMode(mode)
+                    ));
+                    sendToPlayer(target, "challenge.received", Map.of(
+                            "player", challenger.getName(),
+                            "mode", displayMode(mode)
+                    ));
+                }
+                case SELF_TARGET -> sendToPlayer(challenger, "challenge.self-target", Map.of());
+                case ALREADY_SENT -> sendToPlayer(challenger, "challenge.already-sent", Map.of("player", target.getName()));
+                case REQUESTER_BUSY -> sendToPlayer(challenger, "challenge.requester-pending", Map.of());
+                case TARGET_BUSY -> sendToPlayer(challenger, "challenge.target-pending", Map.of("player", target.getName()));
+            }
+        });
+    }
+
     public void joinQueueEntry(Player player, String queueId) {
         schedulerFacade.runSync(() -> joinQueueEntryInternal(player, queueId));
     }
@@ -118,7 +162,7 @@ public final class DuelLifecycleService {
                 return;
             }
 
-            List<PlayerQueueEntry> candidates = matchmakingService.randomJoinCandidates(player.getUniqueId());
+            List<PlayerQueueEntry> candidates = matchmakingService.randomJoinCandidates(player.getUniqueId(), activeMode());
             if (candidates.isEmpty()) {
                 sendToPlayer(player, "queue.random-none", Map.of());
                 return;
@@ -143,37 +187,107 @@ public final class DuelLifecycleService {
         });
     }
 
-    public void surrender(Player player) {
+    public void accept(Player player, String requesterName) {
         schedulerFacade.runSync(() -> {
+            DuelRequestService.ResolveRequestResult resolveResult = duelRequestService.resolveForTarget(
+                    player.getUniqueId(),
+                    requesterName
+            );
+            if (resolveResult.status() != DuelRequestService.ResolveRequestStatus.RESOLVED || resolveResult.request() == null) {
+                if (requesterName == null) {
+                    sendToPlayer(player, "challenge.not-pending", Map.of());
+                } else {
+                    sendToPlayer(player, "challenge.not-pending-player", Map.of("player", requesterName));
+                }
+                return;
+            }
+
+            DuelRequestService.PendingDuelRequest request = resolveResult.request();
+            Player requester = Bukkit.getPlayer(request.requesterId());
+            if (requester == null || !requester.isOnline()) {
+                sendToPlayer(player, "challenge.invalid", Map.of());
+                return;
+            }
+
+            MatchmakingService.DirectDuelStartResult startResult = matchmakingService.startDirectDuel(
+                    request.requesterId(),
+                    request.requesterName(),
+                    request.targetId(),
+                    request.targetName(),
+                    request.mode()
+            );
+            if (!handleDirectDuelStartFailure(player, requester, startResult.status())) {
+                return;
+            }
+
+            sendToPlayer(player, "challenge.accepted-self", Map.of("player", requester.getName()));
+            sendToPlayer(requester, "challenge.accepted-other", Map.of("player", player.getName()));
+            handleMatchFound(startResult.sessionContext());
+        });
+    }
+
+    public void deny(Player player, String requesterName) {
+        schedulerFacade.runSync(() -> {
+            DuelRequestService.ResolveRequestResult resolveResult = duelRequestService.resolveForTarget(
+                    player.getUniqueId(),
+                    requesterName
+            );
+            if (resolveResult.status() != DuelRequestService.ResolveRequestStatus.RESOLVED || resolveResult.request() == null) {
+                if (requesterName == null) {
+                    sendToPlayer(player, "challenge.not-pending", Map.of());
+                } else {
+                    sendToPlayer(player, "challenge.not-pending-player", Map.of("player", requesterName));
+                }
+                return;
+            }
+
+            DuelRequestService.PendingDuelRequest request = resolveResult.request();
+            sendToPlayer(player, "challenge.denied-self", Map.of("player", request.requesterName()));
+            sendToPlayer(request.requesterId(), "challenge.denied-other", Map.of("player", player.getName()));
+        });
+    }
+
+    public void out(Player player) {
+        schedulerFacade.runSync(() -> {
+            if (matchmakingService.removeOwnedQueue(player.getUniqueId(), true) != null) {
+                sendToPlayer(player, "queue.removed-on-out", Map.of());
+                return;
+            }
+
+            List<DuelRequestService.PendingDuelRequest> clearedRequests = duelRequestService.clearForPlayer(player.getUniqueId());
+            if (!clearedRequests.isEmpty()) {
+                DuelRequestService.PendingDuelRequest request = clearedRequests.getFirst();
+                if (request.requesterId().equals(player.getUniqueId())) {
+                    sendToPlayer(player, "challenge.withdrawn-self", Map.of("player", request.targetName()));
+                    sendToPlayer(request.targetId(), "challenge.withdrawn-other", Map.of("player", player.getName()));
+                } else {
+                    sendToPlayer(player, "challenge.denied-self", Map.of("player", request.requesterName()));
+                    sendToPlayer(request.requesterId(), "challenge.denied-other", Map.of("player", player.getName()));
+                }
+                return;
+            }
+
             DuelSessionContext context = duelSessionManager.byPlayer(player.getUniqueId()).orElse(null);
             if (context == null) {
-                sendToPlayer(player, "duel.no-session", Map.of());
+                sendToPlayer(player, "general.out-idle", Map.of());
                 return;
             }
 
-            DuelSessionState state = context.session().state();
-            if (state == DuelSessionState.FIGHTING) {
-                sendToPlayer(player, "duel.surrendered", Map.of());
-                completeSessionWithWinner(context.session(), context.session().opponentOf(player.getUniqueId()));
-                return;
-            }
-
-            cancelSession(context.session(), "surrendered");
+            sendToPlayer(player, "duel.out-self", Map.of());
+            completeSessionWithWinner(context.session(), context.session().opponentOf(player.getUniqueId()), DuelWinCause.OUT);
         });
     }
 
     public void handleDisconnect(Player player) {
         schedulerFacade.runSync(() -> {
+            clearPendingRequestsFor(player, "challenge.withdrawn-other", "challenge.withdrawn-other");
+
             if (matchmakingService.removeOwnedQueue(player.getUniqueId()) != null) {
                 return;
             }
 
             duelSessionManager.byPlayer(player.getUniqueId()).ifPresent(context -> {
-                if (context.session().state() == DuelSessionState.FIGHTING) {
-                    completeSessionWithWinner(context.session(), context.session().opponentOf(player.getUniqueId()));
-                    return;
-                }
-                cancelSession(context.session(), player.getName() + " left");
+                completeSessionWithWinner(context.session(), context.session().opponentOf(player.getUniqueId()), DuelWinCause.QUIT);
             });
         });
     }
@@ -181,10 +295,10 @@ public final class DuelLifecycleService {
     public void handleLethalDamage(Player victim) {
         schedulerFacade.runSync(() -> {
             DuelSessionContext context = duelSessionManager.byPlayer(victim.getUniqueId()).orElse(null);
-            if (context == null || context.session().state() != DuelSessionState.FIGHTING) {
+            if (context == null) {
                 return;
             }
-            completeSessionWithWinner(context.session(), context.session().opponentOf(victim.getUniqueId()));
+            completeSessionWithWinner(context.session(), context.session().opponentOf(victim.getUniqueId()), DuelWinCause.DEATH);
         });
     }
 
@@ -195,7 +309,8 @@ public final class DuelLifecycleService {
     }
 
     public void reloadQueues() {
-        // Player-created queues live in memory and do not need config reload handling.
+        duelRequestService.clearAll();
+        matchmakingService.removeQueuesNotInMode(activeMode());
     }
 
     public CompletableFuture<Integer> cleanupLeftoverInstances() {
@@ -207,6 +322,7 @@ public final class DuelLifecycleService {
     }
 
     public void shutdown() {
+        duelRequestService.clearAll();
         for (DuelSessionContext context : duelSessionManager.activeContexts()) {
             cancelSession(context.session(), "server shutting down");
         }
@@ -215,6 +331,19 @@ public final class DuelLifecycleService {
 
     public List<PlayerQueueEntry> activeQueueEntries() {
         return matchmakingService.activeEntries();
+    }
+
+    public List<PlayerQueueEntry> activeQueueEntriesForCurrentMode() {
+        return matchmakingService.activeEntries(activeMode());
+    }
+
+    public String activeModeDisplayName() {
+        return displayMode(activeMode());
+    }
+
+    public String pendingRequesterName(Player player) {
+        DuelRequestService.PendingDuelRequest request = duelRequestService.pendingForTarget(player.getUniqueId());
+        return request == null ? null : request.requesterName();
     }
 
     private void handleMatchFound(DuelSessionContext context) {
@@ -250,6 +379,48 @@ public final class DuelLifecycleService {
             case MODE_DISABLED -> sendToPlayer(player, "queue.disabled-mode", Map.of());
             case NO_ARENA_TEMPLATE -> sendToPlayer(player, "queue.no-default-arena-template", Map.of());
         }
+    }
+
+    private boolean handleDirectDuelCheckFailure(Player challenger,
+                                                 MatchmakingService.DirectDuelStatus status,
+                                                 String targetName) {
+        switch (status) {
+            case READY -> {
+                return true;
+            }
+            case SELF_TARGET -> sendToPlayer(challenger, "challenge.self-target", Map.of());
+            case REQUESTER_HAS_QUEUE -> sendToPlayer(challenger, "challenge.leave-queue-first", Map.of());
+            case TARGET_HAS_QUEUE -> sendToPlayer(challenger, "challenge.target-has-queue", Map.of("player", targetName));
+            case REQUESTER_IN_SESSION -> sendToPlayer(challenger, "queue.in-session", Map.of());
+            case TARGET_IN_SESSION -> sendToPlayer(challenger, "challenge.target-busy", Map.of("player", targetName));
+            case REMATCH_BLOCKED -> sendToPlayer(challenger, "challenge.rematch-blocked", Map.of());
+            case MODE_DISABLED -> sendToPlayer(challenger, "challenge.mode-unavailable", Map.of());
+            case NO_ARENA_TEMPLATE -> sendToPlayer(challenger, "challenge.no-default-arena-template", Map.of());
+        }
+        return false;
+    }
+
+    private boolean handleDirectDuelStartFailure(Player accepter,
+                                                 Player requester,
+                                                 MatchmakingService.DirectDuelStatus status) {
+        switch (status) {
+            case READY -> {
+                return true;
+            }
+            case REMATCH_BLOCKED -> {
+                sendToPlayer(accepter, "challenge.rematch-blocked", Map.of());
+                sendToPlayer(requester, "challenge.invalid", Map.of());
+            }
+            case NO_ARENA_TEMPLATE -> {
+                sendToPlayer(accepter, "challenge.no-default-arena-template", Map.of());
+                sendToPlayer(requester, "challenge.invalid", Map.of());
+            }
+            default -> {
+                sendToPlayer(accepter, "challenge.invalid", Map.of());
+                sendToPlayer(requester, "challenge.invalid", Map.of());
+            }
+        }
+        return false;
     }
 
     private void beginProvisioning(DuelSessionContext context) {
@@ -434,12 +605,20 @@ public final class DuelLifecycleService {
         }
     }
 
-    private void completeSessionWithWinner(DuelSession session, UUID winnerId) {
+    private void completeSessionWithWinner(DuelSession session, UUID winnerId, DuelWinCause winCause) {
         DuelSessionContext context = duelSessionManager.bySessionId(session.sessionId()).orElse(null);
         if (context == null) {
             return;
         }
-        if (!session.transition(DuelSessionState.FIGHTING, DuelSessionState.ENDING)) {
+        if (!session.transitionAny(
+                Set.of(
+                        DuelSessionState.MATCH_FOUND,
+                        DuelSessionState.PROVISIONING,
+                        DuelSessionState.TELEPORTING,
+                        DuelSessionState.FIGHTING
+                ),
+                DuelSessionState.ENDING
+        )) {
             return;
         }
 
@@ -448,6 +627,9 @@ public final class DuelLifecycleService {
         Player winner = Bukkit.getPlayer(winnerId);
         Player loser = Bukkit.getPlayer(session.opponentOf(winnerId));
         if (winner != null && loser != null) {
+            if (winCause.broadcastElimination()) {
+                broadcastElimination(winner.getName(), loser.getName());
+            }
             if (session.mode() == DuelModeType.ARENA) {
                 sendToPlayer(winner, "duel.arena-won", Map.of("opponent", loser.getName()));
                 sendToPlayer(loser, "duel.arena-lost", Map.of("opponent", winner.getName()));
@@ -458,6 +640,9 @@ public final class DuelLifecycleService {
                 sendToPlayer(loser, "duel.lost", Map.of("opponent", winner.getName()));
             }
         } else if (winner != null) {
+            if (winCause.broadcastElimination()) {
+                broadcastElimination(winner.getName(), winCause.offlineLoserName(session, winnerId));
+            }
             sendToPlayer(winner, session.mode() == DuelModeType.ARENA ? "duel.arena-won" : "duel.won", Map.of("opponent", "opponent"));
         }
 
@@ -555,6 +740,35 @@ public final class DuelLifecycleService {
         return messageService.renderRaw("modes." + mode.langKey(), Map.of());
     }
 
+    private DuelModeType activeMode() {
+        return configService.mainConfig().modes().activeMode()
+                .orElseThrow(() -> new IllegalStateException("CookieDuel does not have exactly one active mode."));
+    }
+
+    private void handleExpiredDirectDuelRequest(DuelRequestService.PendingDuelRequest request) {
+        sendToPlayer(request.requesterId(), "challenge.expired-requester", Map.of("player", request.targetName()));
+        sendToPlayer(request.targetId(), "challenge.expired-target", Map.of("player", request.requesterName()));
+    }
+
+    private void clearPendingRequestsFor(Player player, String requesterMessagePath, String targetMessagePath) {
+        for (DuelRequestService.PendingDuelRequest request : duelRequestService.clearForPlayer(player.getUniqueId())) {
+            if (request.requesterId().equals(player.getUniqueId())) {
+                sendToPlayer(request.targetId(), requesterMessagePath, Map.of("player", player.getName()));
+                continue;
+            }
+            sendToPlayer(request.requesterId(), targetMessagePath, Map.of("player", player.getName()));
+        }
+    }
+
+    private void broadcastElimination(String winnerName, String loserName) {
+        schedulerFacade.runSync(() -> Bukkit.broadcastMessage(
+                messageService.renderRaw("duel.server-broadcast-win", Map.of(
+                        "winner", winnerName,
+                        "loser", loserName
+                ))
+        ));
+    }
+
     private void showArenaResultTitle(Player player,
                                       String titlePath,
                                       String subtitlePath,
@@ -590,5 +804,21 @@ public final class DuelLifecycleService {
             return true;
         }
         return blockBreak ? template.settings().allowBlockBreak() : template.settings().allowBlockPlace();
+    }
+
+    private enum DuelWinCause {
+        OUT,
+        QUIT,
+        DEATH;
+
+        boolean broadcastElimination() {
+            return this == OUT || this == QUIT || this == DEATH;
+        }
+
+        String offlineLoserName(DuelSession session, UUID winnerId) {
+            return Optional.ofNullable(Bukkit.getOfflinePlayer(session.opponentOf(winnerId)).getName())
+                    .filter(name -> !name.isBlank())
+                    .orElse("opponent");
+        }
     }
 }

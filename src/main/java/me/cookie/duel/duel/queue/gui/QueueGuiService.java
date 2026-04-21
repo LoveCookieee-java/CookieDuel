@@ -76,7 +76,7 @@ public final class QueueGuiService {
     }
 
     private Inventory buildInventory(Player viewer, int requestedPage) {
-        List<PlayerQueueEntry> entries = duelLifecycleService.activeQueueEntries();
+        List<PlayerQueueEntry> entries = duelLifecycleService.activeQueueEntriesForCurrentMode();
         int totalPages = Math.max(1, (int) Math.ceil(entries.size() / (double) CONTENT_SLOTS.size()));
         int page = Math.max(0, Math.min(requestedPage, totalPages - 1));
         int startIndex = page * CONTENT_SLOTS.size();
@@ -87,7 +87,9 @@ public final class QueueGuiService {
         Inventory inventory = Bukkit.createInventory(
                 holder,
                 GUI_SIZE,
-                messageService.renderRaw("gui.queue-browser.title", Map.of())
+                messageService.renderRaw("gui.queue-browser.title", Map.of(
+                        "mode", duelLifecycleService.activeModeDisplayName()
+                ))
         );
         holder.attach(inventory);
 
@@ -183,7 +185,8 @@ public final class QueueGuiService {
                 "money", playerProfileService.money(viewer),
                 "kills", String.valueOf(playerProfileService.kills(viewer)),
                 "deaths", String.valueOf(playerProfileService.deaths(viewer)),
-                "points", playerProfileService.points(viewer)
+                "points", playerProfileService.points(viewer),
+                "mode", duelLifecycleService.activeModeDisplayName()
         )));
         meta.addItemFlags(ItemFlag.HIDE_ATTRIBUTES);
         item.setItemMeta(meta);

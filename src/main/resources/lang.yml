@@ -1,20 +1,26 @@
 # Main language file.
-# Keep placeholders like {queue}, {id}, {owner}, {mode}, {money}, {player}, {kills}, {deaths}, {points}, {opponent}, {seconds}, {reason}, and {count}.
+# Keep placeholders like {queue}, {id}, {owner}, {mode}, {money}, {player}, {kills}, {deaths}, {points}, {opponent}, {seconds}, {reason}, {count}, {winner}, and {loser}.
 
 prefix: "&6CookieDuel &8» &r"
+
+startup:
+  invalid-mode-both-enabled: "CookieDuel disabled: both WILD and ARENA are enabled in config.yml. Enable exactly one mode."
+  invalid-mode-both-disabled: "CookieDuel disabled: both WILD and ARENA are disabled in config.yml. Enable exactly one mode."
 
 general:
   player-only: "&cOnly players can use that command."
   invalid-mode: "&cInvalid mode. Use &fWILD &cor &fARENA&c."
+  out-idle: "&cYou are not in a queue, duel, or pending challenge."
 
 modes:
   wild: "WILD"
   arena: "ARENA"
 
 queue:
-  create-usage: "&eUse &f/cd queue <mode> &eto open a queue under your player name."
+  create-usage: "&eUse &f/cd queue &eto open a queue under your player name."
   created: "&aCreated your &f{mode} &aqueue under &f{owner}&a."
   removed: "&eRemoved your queue entry."
+  removed-on-out: "&eRemoved your queue entry with &f/cd out&e."
   not-in-queue: "&cYou don't have an active queue entry."
   already-own: "&cYou already have an active queue entry. Use &f/cd leave &cfirst."
   duplicate-id: "&cA queue is already using your player name right now."
@@ -32,6 +38,35 @@ queue:
   random-joining: "&eJoining a random queue: &f{owner} &7({mode})"
   gui-refresh-cooldown: "&cWait &f{seconds}s &cbefore refreshing again."
 
+challenge:
+  duel-usage: "&eUse &f/cd duel <player>&e."
+  accept-usage: "&eUse &f/cd accept &eor &f/cd accept <player>&e."
+  deny-usage: "&eUse &f/cd deny &eor &f/cd deny <player>&e."
+  target-offline: "&cPlayer &f{player} &cis not online."
+  self-target: "&cYou can't duel yourself."
+  sent: "&eSent a &f{mode} &eduel request to &f{player}&e."
+  received: "&f{player} &echallenged you to a &f{mode} &eduel. Use &a/cd accept {player} &eor &c/cd deny {player}&e."
+  already-sent: "&cYou already sent a duel request to &f{player}&c."
+  requester-pending: "&cFinish your current duel request first."
+  target-pending: "&c{player} already has another duel request pending."
+  not-pending: "&cYou have no duel request waiting."
+  not-pending-player: "&cYou have no duel request from &f{player}&c."
+  accepted-self: "&aAccepted the duel request from &f{player}&a."
+  accepted-other: "&a{player} accepted your duel request."
+  denied-self: "&eDenied the duel request from &f{player}&e."
+  denied-other: "&c{player} denied your duel request."
+  expired-requester: "&cYour duel request to &f{player} &cexpired."
+  expired-target: "&cThe duel request from &f{player} &cexpired."
+  withdrawn-self: "&eWithdrew your duel request to &f{player}&e."
+  withdrawn-other: "&c{player} cancelled the duel request."
+  leave-queue-first: "&cLeave your queue before sending a direct duel."
+  target-has-queue: "&c{player} is already hosting a queue."
+  target-busy: "&c{player} is already in a duel."
+  rematch-blocked: "&cYou can't rematch that player yet."
+  mode-unavailable: "&cThe active duel mode is not available right now."
+  no-default-arena-template: "&cArena duels are not available because no default arena template is configured."
+  invalid: "&cThat duel request is no longer valid."
+
 duel:
   preparing: "&eSetting up the duel..."
   teleporting: "&eTeleporting players..."
@@ -40,12 +75,13 @@ duel:
   lost: "&cYou lost to {opponent}."
   arena-won: "&aYou won the arena duel against {opponent}!"
   arena-lost: "&cYou lost the arena duel to {opponent}."
-  surrendered: "&cYou surrendered."
+  out-self: "&eYou used &f/cd out&e."
   cancelled: "&cDuel cancelled: {reason}"
   no-session: "&cYou're not in a duel right now."
   no-safe-spawn: "&cCouldn't find a safe Wild spawn."
   provision-failed: "&cCouldn't prepare the arena."
   teleport-failed: "&cCouldn't start the duel because teleporting failed."
+  server-broadcast-win: "&e{winner} đã tiêu diệt {loser}"
   arena-title-win-title: "&aVictory"
   arena-title-win-subtitle: "&fYou beat {opponent}"
   arena-title-lose-title: "&cDefeat"
@@ -63,7 +99,7 @@ admin:
 
 gui:
   queue-browser:
-    title: "&8CookieDuel Queues"
+    title: "&8CookieDuel {mode}"
     entry-name: "&e{owner}"
     entry-lore:
       - "&7Player: &f{owner}"
@@ -74,6 +110,7 @@ gui:
     profile-name: "&6Your Profile"
     profile-lore:
       - "&7Player: &f{player}"
+      - "&7Mode: &f{mode}"
       - "&7Money: &f{money}"
       - "&7Kills: &f{kills}"
       - "&7Deaths: &f{deaths}"

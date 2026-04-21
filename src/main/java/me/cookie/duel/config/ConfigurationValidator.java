@@ -5,13 +5,33 @@ import me.cookie.duel.config.model.QueuesConfig;
 import me.cookie.duel.config.model.WorldsConfig;
 import org.bukkit.Bukkit;
 import org.bukkit.World;
+import org.bukkit.configuration.file.FileConfiguration;
 
 import java.nio.file.Files;
 import java.nio.file.Path;
 
 public final class ConfigurationValidator {
 
-    public void validate(MainConfig mainConfig, QueuesConfig queuesConfig, WorldsConfig worldsConfig) {
+    public void validate(MainConfig mainConfig,
+                         QueuesConfig queuesConfig,
+                         WorldsConfig worldsConfig,
+                         FileConfiguration langConfig) {
+        int enabledModeCount = mainConfig.modes().enabledModeCount();
+        if (enabledModeCount == 0) {
+            throw new ConfigurationException(message(
+                    langConfig,
+                    "startup.invalid-mode-both-disabled",
+                    "CookieDuel disabled: both WILD and ARENA are disabled in config.yml. Enable exactly one mode."
+            ));
+        }
+        if (enabledModeCount > 1) {
+            throw new ConfigurationException(message(
+                    langConfig,
+                    "startup.invalid-mode-both-enabled",
+                    "CookieDuel disabled: both WILD and ARENA are enabled in config.yml. Enable exactly one mode."
+            ));
+        }
+
         if (mainConfig.modes().wildEnabled()) {
             World wildWorld = Bukkit.getWorld(worldsConfig.wild().world());
             if (wildWorld == null) {
@@ -46,5 +66,13 @@ public final class ConfigurationValidator {
                 );
             }
         }
+    }
+
+    private String message(FileConfiguration langConfig, String path, String fallback) {
+        if (langConfig == null) {
+            return fallback;
+        }
+        String value = langConfig.getString(path);
+        return value == null || value.isBlank() ? fallback : value;
     }
 }
